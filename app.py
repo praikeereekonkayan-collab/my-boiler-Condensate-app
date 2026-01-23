@@ -38,7 +38,8 @@ df.columns = [
     "x2"
 ]
 
-df["Date"] = pd.to_datetime(df["Date"])
+df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+df = df.dropna(subset=["Date"])
 df["%Condensate"] = pd.to_numeric(df["%Condensate"], errors="coerce")
 df["Steam_Total"] = pd.to_numeric(df["Steam_Total"], errors="coerce")
 
