@@ -422,50 +422,8 @@ if st.button("📥 ดาวน์โหลดรายงาน PDF"):
             f,
             file_name=pdf_file
         )
-import streamlit as st
-import pandas as pd
-import plotly.express as px
 
-st.set_page_config(
-    page_title="Condensate Boiler Dashboard",
-    layout="wide"
-)
 
-st.title("🏭 Condensate Boiler Dashboard")
-
-# =========================
-# โหลดข้อมูล
-# =========================
-file = "%CONDENSATE BOILER.xlsx"
-df = pd.read_excel(file)
-
-# เลือกเฉพาะข้อมูลที่จำเป็น
-df = df.iloc[2:].copy()
-
-df.columns = [
-    "Date",
-    "Soft Mark Up",
-    "Boiler Water",
-    "Condensate Return",
-    "Date2",
-    "Target",
-    "%Condensate",
-    "Date3",
-    "Cond_BHS",
-    "Cond_BHS_%",
-    "Date4",
-    "Steam_Total",
-    "Date5",
-    "AVG_DIFF",
-    "x1",
-    "DIFF",
-    "x2"
-]
-
-df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-df = df.dropna(subset=["Date"])
-df["%Condensate"] = pd.to_numeric(df["%Condensate"], errors="coerce")
-df["Steam_Total"] = pd.to_numeric(df["Steam_Total"], errors="coerce")
 
 # =========================
 # KPI
