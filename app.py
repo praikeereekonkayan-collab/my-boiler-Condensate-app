@@ -125,27 +125,7 @@ day_list = sorted(
 )
 st.sidebar.header("📅 เลือกช่วงเวลา")
 
-# ปี
-year_list = sorted(df["Date"].dt.year.unique())
-select_year = st.sidebar.selectbox("เลือกปี", year_list)
 
-# เดือน
-month_list = sorted(df[df["Date"].dt.year == select_year]["Date"].dt.month.unique())
-select_month = st.sidebar.selectbox("เลือกเดือน", month_list)
-
-# วัน
-day_list = sorted(
-    df[
-        (df["Date"].dt.year == select_year) &
-        (df["Date"].dt.month == select_month)
-    ]["Date"].dt.day.unique()
-)
-
-select_day = st.sidebar.multiselect(
-    "เลือกวัน (เลือกหลายวันได้)",
-    day_list,
-    default=day_list
-)
 
 select_day = st.sidebar.multiselect(
     "เลือกวัน (เลือกหลายวันได้)",
@@ -165,14 +145,7 @@ daily_summary = (
     )
     .reset_index()
 )
-daily_summary = (
-    df_filter
-    .groupby(df_filter["Date"].dt.date)
-    .agg(
-        Condensate_Percent=("%Condensate", "mean")
-    )
-    .reset_index()
-)
+
 st.subheader("📊 สรุป % Condensate รายวัน")
 
 col1, col2 = st.columns(2)
