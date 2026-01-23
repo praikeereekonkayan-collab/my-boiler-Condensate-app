@@ -1,4 +1,4 @@
-import pandas as pd
+import app.py 
 import matplotlib.pyplot as plt
 import glob
 import os
@@ -88,4 +88,5 @@ with pd.ExcelWriter("steam_all_report.xlsx") as writer:
 
 print("\n รวมไฟล์ + สร้างรายงานสำเร็จ: steam_all_report.xlsx")
 print("   และรูปกราฟถูกสร้างเรียบร้อยแล้ว")
+
 
