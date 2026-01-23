@@ -64,8 +64,7 @@ default_year = current_year if current_year in year_list else year_list[-1]
 select_year = st.sidebar.selectbox(
     "เลือกปี",
     year_list,
-    index=year_list.index(default_year),
-    key="year"
+    
 )
 
 view_mode = st.sidebar.radio(
