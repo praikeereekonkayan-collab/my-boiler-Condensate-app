@@ -2,3 +2,8 @@ streamlit
 pandas
 plotly
 openpyxl
+reportlab
+streamlit
+pandas
+plotly
+openpyxl
