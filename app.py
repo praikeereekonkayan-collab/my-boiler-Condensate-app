@@ -104,3 +104,98 @@ st.dataframe(
     df[["Date", "%Condensate", "Steam_Total"]],
     use_container_width=True
 )
+df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+df = df.dropna(subset=["Date"])
+st.sidebar.header("📅 เลือกช่วงเวลา")
+
+# ปี
+year_list = sorted(df["Date"].dt.year.unique())
+select_year = st.sidebar.selectbox("เลือกปี", year_list)
+
+# เดือน
+month_list = sorted(df[df["Date"].dt.year == select_year]["Date"].dt.month.unique())
+select_month = st.sidebar.selectbox("เลือกเดือน", month_list)
+
+# วัน
+day_list = sorted(
+    df[
+        (df["Date"].dt.year == select_year) &
+        (df["Date"].dt.month == select_month)
+    ]["Date"].dt.day.unique()
+)
+st.sidebar.header("📅 เลือกช่วงเวลา")
+
+# ปี
+year_list = sorted(df["Date"].dt.year.unique())
+select_year = st.sidebar.selectbox("เลือกปี", year_list)
+
+# เดือน
+month_list = sorted(df[df["Date"].dt.year == select_year]["Date"].dt.month.unique())
+select_month = st.sidebar.selectbox("เลือกเดือน", month_list)
+
+# วัน
+day_list = sorted(
+    df[
+        (df["Date"].dt.year == select_year) &
+        (df["Date"].dt.month == select_month)
+    ]["Date"].dt.day.unique()
+)
+
+select_day = st.sidebar.multiselect(
+    "เลือกวัน (เลือกหลายวันได้)",
+    day_list,
+    default=day_list
+)
+
+select_day = st.sidebar.multiselect(
+    "เลือกวัน (เลือกหลายวันได้)",
+    day_list,
+    default=day_list
+)
+df_filter = df[
+    (df["Date"].dt.year == select_year) &
+    (df["Date"].dt.month == select_month) &
+    (df["Date"].dt.day.isin(select_day))
+]
+daily_summary = (
+    df_filter
+    .groupby(df_filter["Date"].dt.date)
+    .agg(
+        Condensate_Percent=("%Condensate", "mean")
+    )
+    .reset_index()
+)
+daily_summary = (
+    df_filter
+    .groupby(df_filter["Date"].dt.date)
+    .agg(
+        Condensate_Percent=("%Condensate", "mean")
+    )
+    .reset_index()
+)
+st.subheader("📊 สรุป % Condensate รายวัน")
+
+col1, col2 = st.columns(2)
+
+col1.metric(
+    "ค่าเฉลี่ย % Condensate",
+    f"{daily_summary['Condensate_Percent'].mean():.2%}"
+)
+
+col2.metric(
+    "จำนวนวันที่เลือก",
+    len(daily_summary)
+)
+import plotly.express as px
+
+fig = px.bar(
+    daily_summary,
+    x="Date",
+    y="Condensate_Percent",
+    text_auto=".2%",
+    title="% Condensate Return รายวัน"
+)
+
+fig.update_yaxes(tickformat=".0%")
+
+st.plotly_chart(fig, use_container_width=True)
