@@ -1,200 +1,199 @@
+# ======================
+# IMPORT (บนสุดไฟล์)
+# ======================
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
+import requests
+import os
+import json
+from datetime import date
 
-st.set_page_config(
-    page_title="Boiler Loss & Alert Dashboard",
-    layout="wide"
+
+def send_alert(msg):
+    """
+    - ถ้ารันบน Streamlit Cloud → ไม่ส่ง LINE
+    - ถ้ารันบนเครื่องจริง → ส่ง LINE ได้
+    """
+
+    # ตรวจว่าอยู่บน Streamlit Cloud หรือไม่
+    is_cloud = os.getenv("STREAMLIT_RUNTIME") is not None
+
+    if is_cloud:
+        st.warning("⚠️ %Condensate ต่ำกว่า KPI (70%) — โหมด Cloud ไม่สามารถส่ง LINE ได้")
+        return
+
+    try:
+        token = st.secrets.get("LINE_TOKEN", None)
+        if token is None:
+            st.error("❌ ไม่พบ LINE_TOKEN")
+            return
+
+        url = "https://notify-api.line.me/api/notify"
+        headers = {"Authorization": f"Bearer {token}"}
+        data = {"message": msg}
+
+        requests.post(url, headers=headers, data=data, timeout=10)
+
+    except Exception as e:
+        st.error("❌ ส่ง LINE ไม่สำเร็จ")
+df["cond_percent"] = (df["cond_return"] / df["steam_use"]) * 100
+df["cond_percent"] = df["cond_percent"].fillna(0)
+df["cond_loss_m3"] = df["steam_use"] - df["cond_return"]
+df["cond_loss_m3"] = df["cond_loss_m3"].clip(lower=0)
+df["loss_water_baht"] = df["cond_loss_m3"] * COST_WATER
+df["loss_chem_baht"] = df["steam_use"] * COST_CHEM
+df["loss_fuel_baht"] = df["steam_use"] * COST_FUEL
+
+df["loss_total_baht"] = (
+    df["loss_water_baht"]
+    + df["loss_chem_baht"]
+    + df["loss_fuel_baht"]
 )
+df["date"] = pd.to_datetime(df["date"])
 
-st.title("🏭 BOILER LOSS • COST • ALERT DASHBOARD")
-
-# ======================================================
-# CONFIG
-# ======================================================
-COST_PER_TON = 350      # บาท/ตัน (แก้ได้)
-TARGET = 80
-WARNING = 70
-
-# ======================================================
-# LOAD DATA
-# ======================================================
-@st.cache_data
-def load_data():
-    url = "https://docs.google.com/spreadsheets/d/1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco/export?format=csv&sheet=data_dashboard"
-    return pd.read_csv(url)
-
-df = load_data()
-
-# ======================================================
-# CLEAN DATA
-# ======================================================
-df["date"] = pd.to_datetime(df["date"], errors="coerce")
-df = df.dropna(subset=["date"])
-
-df["loss"] = df["steam_total"] - df["condensate_return"]
-df["loss_cost"] = df["loss"] * COST_PER_TON
-
-# ======================================================
-# DATE FILTER
-# ======================================================
-st.sidebar.header("📅 เลือกช่วงวันที่")
-
-start_date, end_date = st.sidebar.date_input(
-    "เลือกช่วง",
-    [df["date"].min(), df["date"].max()]
+mode = st.radio(
+    "เลือกรูปแบบรายงาน",
+    ["รายวัน", "รายเดือน", "รายปี"],
+    horizontal=True
 )
+if mode == "รายวัน":
+    df_show = df.groupby("date").mean().reset_index()
 
-df = df[
-    (df["date"] >= pd.to_datetime(start_date)) &
-    (df["date"] <= pd.to_datetime(end_date))
-]
-
-# ======================================================
-# VIEW MODE
-# ======================================================
-view = st.sidebar.radio(
-    "📊 มุมมอง",
-    ["รายวัน", "รายเดือน", "รายปี"]
-)
-
-# ======================================================
-# GROUP
-# ======================================================
-if view == "รายวัน":
-    df_g = df.groupby("date", as_index=False).sum(numeric_only=True)
-
-elif view == "รายเดือน":
+elif mode == "รายเดือน":
     df["month"] = df["date"].dt.to_period("M").astype(str)
-    df_g = df.groupby("month", as_index=False).sum(numeric_only=True)
-    df_g.rename(columns={"month": "date"}, inplace=True)
+    df_show = df.groupby("month").mean().reset_index()
 
 else:
-    df["year"] = df["date"].dt.year.astype(str)
-    df_g = df.groupby("year", as_index=False).sum(numeric_only=True)
-    df_g.rename(columns={"year": "date"}, inplace=True)
+    df["year"] = df["date"].dt.year
+    df_show = df.groupby("year").mean().reset_index()
+def kpi_color(val):
+    if val >= 80:
+        return "green"
+    elif val >= 70:
+        return "gold"
+    else:
+        return "red"
 
-df_g["condensate_pct"] = (
-    df_g["condensate_return"] / df_g["steam_total"] * 100
+df_show["color"] = df_show["cond_percent"].apply(kpi_color)
+
+fig = px.bar(
+    df_show,
+    x=df_show.columns[0],
+    y="cond_percent",
+    color="color",
+    title="% Condensate Return",
 )
 
-# ======================================================
-# ALERT LOGIC
-# ======================================================
-df_g["status"] = df_g["condensate_pct"].apply(
-    lambda x: "🟢 ปกติ" if x >= TARGET else
-              "🟡 เฝ้าระวัง" if x >= WARNING else
-              "🔴 แจ้งเตือน"
-)
-
-alert_rows = df_g[df_g["condensate_pct"] < WARNING]
-
-# ======================================================
-# KPI
-# ======================================================
-total_loss_cost = df_g["loss_cost"].sum()
-avg_pct = df_g["condensate_pct"].mean()
-
-col1, col2, col3, col4 = st.columns(4)
-
-col1.metric("💰 เงินสูญเสียรวม", f"{total_loss_cost:,.0f} บาท")
-col2.metric("🔥 Steam Loss รวม", f"{df_g['loss'].sum():,.0f} ตัน")
-col3.metric("%Condensate เฉลี่ย", f"{avg_pct:.2f}%")
-col4.metric("สถานะระบบ", 
-            "🔴 ALERT" if not alert_rows.empty else "🟢 NORMAL")
-
-st.divider()
-
-# ======================================================
-# GRAPH : LOSS TREND
-# ======================================================
-fig1 = px.line(
-    df_g,
-    x="date",
-    y="loss_cost",
-    markers=True,
-    title="📉 แนวโน้มเงินสูญเสีย (Loss Trend)"
-)
-
-fig1.update_layout(
-    yaxis_title="บาท",
-    template="plotly_white"
-)
-
-st.plotly_chart(fig1, use_container_width=True)
-
-# ======================================================
-# GRAPH : CONDENSATE %
-# ======================================================
-fig2 = px.bar(
-    df_g,
-    x="date",
-    y="condensate_pct",
-    text_auto=".1f",
-    title="% Condensate Return"
-)
-
-fig2.add_hline(y=TARGET, line_dash="dash", annotation_text="Target 80%")
-fig2.add_hline(y=WARNING, line_dash="dot", annotation_text="Warning 70%")
-
-fig2.update_layout(
-    yaxis_range=[0, 100],
-    template="plotly_white"
+st.plotly_chart(fig, use_container_width=True)
+fig2 = px.line(
+    df_show,
+    x=df_show.columns[0],
+    y="loss_total_baht",
+    title="💸 Condensate Loss (Baht)"
 )
 
 st.plotly_chart(fig2, use_container_width=True)
+latest = df.iloc[-1]
 
-# ======================================================
-# ALERT TABLE
-# ======================================================
-if not alert_rows.empty:
-    st.error("🚨 พบช่วงเวลาที่ %Condensate ต่ำกว่า 70%")
-    st.dataframe(alert_rows, use_container_width=True)
+if latest["cond_percent"] < KPI:
+    msg = f"""
+🚨 CONDENSATE ต่ำกว่า KPI
+% = {latest['cond_percent']:.1f}%
+Loss = {latest['loss_total_baht']:,.0f} บาท
+"""
+    st.error(msg)
+    send_alert(msg)
 else:
-    st.success("✅ ระบบอยู่ในเกณฑ์ปกติ")
-# ================= COST CONFIG =================
-COST_WATER = 35
-COST_CHEM = 45
-COST_FUEL = 270
+    st.success("🟢 Condensate ผ่าน KPI")
+KPI_TARGET = 70
 
-# ================= LOSS CALC =================
-df["loss"] = df["steam_total"] - df["condensate_return"]
-
-df["loss_water"] = df["loss"] * COST_WATER
-df["loss_chem"] = df["loss"] * COST_CHEM
-df["loss_fuel"] = df["loss"] * COST_FUEL
-
-df["loss_total"] = (
-    df["loss_water"] +
-    df["loss_chem"] +
-    df["loss_fuel"]
+fig_kpi = px.line(
+    df_show,
+    x=df_show.columns[0],
+    y="cond_percent",
+    markers=True,
+    title="% Condensate พร้อมเส้น KPI"
 )
 
-# ================= LINE ALERT =================
-import requests
+fig_kpi.add_hline(
+    y=KPI_TARGET,
+    line_dash="dash",
+    line_color="red",
+    annotation_text="KPI 70%",
+    annotation_position="top left"
+)
 
-def send_line(msg):
-    token = st.secrets["LINE_TOKEN"]
-    url = "https://notify-api.line.me/api/notify"
-    headers = {"Authorization": f"Bearer {token}"}
-    data = {"message": msg}
-    requests.post(url, headers=headers, data=data)
+st.plotly_chart(fig_kpi, use_container_width=True)
+top10 = (
+    df.groupby("date")["loss_total_baht"]
+    .sum()
+    .reset_index()
+    .sort_values("loss_total_baht", ascending=False)
+    .head(10)
+)
 
-# ตรวจ ALERT
-alert = df[df["condensate_pct"] < 70]
+st.subheader("🔥 TOP 10 วันที่สูญเสียเงินสูงสุด")
+st.dataframe(top10.style.format({"loss_total_baht": "{:,.0f}"}))
+df["hour"] = pd.to_datetime(df["time"]).dt.hour
 
-if not alert.empty:
-    last = alert.iloc[-1]
-    msg = f"""
-🚨 BOILER ALERT
+heat = df.pivot_table(
+    index="hour",
+    columns=df["date"].dt.day_name(),
+    values="cond_loss_m3",
+    aggfunc="sum"
+)
 
-📅 วันที่: {last['date'].date()}
-%Condensate: {last['condensate_pct']:.2f}%
+fig_heat = px.imshow(
+    heat,
+    title="🔥 Heatmap การสูญเสีย Condensate (วัน–เวลา)",
+    aspect="auto"
+)
 
-💧 น้ำสูญเสีย: {last['loss_water']:,.0f} บาท
-🧪 เคมีสูญเสีย: {last['loss_chem']:,.0f} บาท
-🔥 เชื้อเพลิงสูญเสีย: {last['loss_fuel']:,.0f} บาท
+st.plotly_chart(fig_heat, use_container_width=True)
 
-รวมสูญเสีย: {last['loss_total']:,.0f} บาท
+def alert_once_per_day(cond_percent, loss_baht, alert_limit=70):
+    today = str(date.today())
+    file = "alert_log.json"
+
+    # โหลดประวัติ
+    try:
+        with open(file, "r") as f:
+            log = json.load(f)
+    except:
+        log = {}
+
+    # เงื่อนไขเตือน
+    if cond_percent < alert_limit:
+
+        # ยังไม่เคยเตือนวันนี้
+        if log.get(today) != "sent":
+
+            msg = f"""
+🚨 CONDENSATE ALERT
+วันที่: {today}
+%Condensate = {cond_percent:.1f}%
+KPI = {alert_limit}%
+
+💸 Loss = {loss_baht:,.0f} บาท
 """
-    send_line(msg)
+
+            send_alert(msg)
+
+            log[today] = "sent"
+
+            with open(file, "w") as f:
+                json.dump(log, f)
+
+            st.error("🔔 แจ้งเตือนแล้ว (วันนี้ครั้งเดียว)")
+        else:
+            st.info("ℹ️ วันนี้แจ้งเตือนไปแล้ว")
+    else:
+        st.success("🟢 Condensate ผ่าน KPI")
+latest = df.iloc[-1]
+
+alert_once_per_day(
+    cond_percent=latest["cond_percent"],
+    loss_baht=latest["loss_total_baht"]
+)
