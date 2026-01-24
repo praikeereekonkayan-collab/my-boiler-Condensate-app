@@ -51,6 +51,8 @@ def load_data():
 
 
 df = load_data()
+df["date"] = pd.to_datetime(df["date"], errors="coerce")
+df = df.dropna(subset=["date"])
 
 if df.empty:
     st.error("❌ ไม่พบข้อมูล")
@@ -381,4 +383,28 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+# =============================
+# PHASE 14 : DATE RANGE FILTER
+# =============================
+
+st.divider()
+st.subheader("📅 เลือกช่วงวันที่แสดงกราฟ")
+
+min_date = df["date"].min()
+max_date = df["date"].max()
+
+start_date, end_date = st.date_input(
+    "เลือกช่วงวันเริ่มต้น – วันสิ้นสุด",
+    value=(min_date, max_date),
+    min_value=min_date,
+    max_value=max_date
+)
+
+start_date = pd.to_datetime(start_date)
+end_date = pd.to_datetime(end_date)
+
+df_filtered = df[
+    (df["date"] >= start_date) &
+    (df["date"] <= end_date)
+]
 
