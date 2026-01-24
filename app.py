@@ -29,6 +29,10 @@ def load_data():
 
 df = load_data()
 
+st.write("คอลัมน์ที่อ่านได้จาก Google Sheet 👇")
+st.write(df.columns.tolist())
+st.stop()
+
 # =============================
 # SIDEBAR
 # =============================
