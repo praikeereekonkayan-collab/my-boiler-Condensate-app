@@ -30,8 +30,6 @@ def load_data():
         .str.replace(" ", "_")
     )
 
-    df = df.loc[:, ~df.columns.str.contains("unnamed")]
-
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
 
     return df
