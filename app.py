@@ -17,26 +17,33 @@ CSV_URL = (
 )
 
 # =============================
-# LOAD DATA
+# LOAD DATA (FINAL)
 # =============================
 @st.cache_data(ttl=300)
 def load_data():
     df = pd.read_csv(CSV_URL)
 
-    # ลบคอลัมน์ว่าง
-    df = df.loc[:, ~df.columns.str.contains("unnamed", case=False)]
-
-    # clean column
+    # ทำความสะอาดชื่อคอลัมน์
     df.columns = (
-        df.columns.astype(str)
+        df.columns
+        .astype(str)
         .str.strip()
         .str.lower()
         .str.replace(" ", "_")
+        .str.replace("-", "_")
     )
+
+    # ลบคอลัมน์ unnamed
+    df = df.loc[:, ~df.columns.str.contains("unnamed")]
+
+    # ตรวจสอบคอลัมน์
+    if "date" not in df.columns:
+        st.error("❌ ไม่พบคอลัมน์ date ใน Google Sheet")
+        st.write("📌 คอลัมน์ที่พบจริง:", df.columns.tolist())
+        st.stop()
 
     # แปลงวันที่
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df = df.dropna(subset=["date"])
 
     return df
 
