@@ -50,7 +50,13 @@ def send_alert(msg):
 # 4️⃣ LOAD DATA (สำคัญมาก)
 # ======================
 # ❗ แก้ตรงนี้ให้ตรงกับชีตจริงของพี่
-df = pd.read_csv("data_dashboard.csv")
+sheet_id = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
+gid = "1778119668"
+
+url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+
+df = pd.read_csv(url)
+
 # หรือโค้ด Google Sheet เดิมของพี่
 
 
