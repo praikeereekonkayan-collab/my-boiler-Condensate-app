@@ -107,3 +107,143 @@ ax3.grid(True)
 st.pyplot(fig3)
 
 st.dataframe(monthly, use_container_width=True)
+import plotly.graph_objects as go
+
+target = df["target_pct"].iloc[0]
+
+def status_color(val):
+    if val >= target:
+        return "green"
+    elif val >= target - 5:
+        return "orange"
+    else:
+        return "red"
+
+colors = df["condensate_pct"].apply(status_color)
+
+fig = go.Figure()
+
+# Actual line
+fig.add_trace(go.Scatter(
+    x=df["date"],
+    y=df["condensate_pct"],
+    mode="lines+markers",
+    name="Actual %",
+    marker=dict(color=colors, size=8),
+    line=dict(width=3)
+))
+
+# Target line
+fig.add_trace(go.Scatter(
+    x=df["date"],
+    y=df["target_pct"],
+    mode="lines",
+    name="Target %",
+    line=dict(dash="dash", color="blue", width=2)
+))
+
+fig.update_layout(
+    title="Condensate Return Efficiency (%)",
+    xaxis_title="Date",
+    yaxis_title="Percent (%)",
+    template="plotly_white",
+    height=450
+)
+
+st.plotly_chart(fig, use_container_width=True)
+fig2 = go.Figure()
+
+fig2.add_trace(go.Bar(
+    x=df["date"],
+    y=df["steam_total"],
+    name="Steam Total",
+))
+
+fig2.add_trace(go.Bar(
+    x=df["date"],
+    y=df["condensate_return"],
+    name="Condensate Return",
+))
+
+fig2.update_layout(
+    barmode="group",
+    title="Steam vs Condensate Return",
+    height=450
+)
+
+st.plotly_chart(fig2, use_container_width=True)
+avg_pct = df["condensate_pct"].mean()
+
+fig3 = go.Figure(go.Indicator(
+    mode="gauge+number+delta",
+    value=avg_pct,
+    delta={"reference": target},
+    gauge={
+        "axis": {"range": [0, 100]},
+        "steps": [
+            {"range": [0, target-5], "color": "red"},
+            {"range": [target-5, target], "color": "yellow"},
+            {"range": [target, 100], "color": "green"},
+        ],
+        "threshold": {
+            "line": {"color": "blue", "width": 4},
+            "value": target
+        }
+    },
+    title={"text": "Average Condensate Return (%)"}
+))
+
+st.plotly_chart(fig3, use_container_width=True)
+import streamlit as st
+
+avg_pct = df["condensate_pct"].mean()
+total_steam = df["steam_total"].sum()
+total_cond = df["condensate_return"].sum()
+target = df["target_pct"].iloc[0]
+
+col1, col2, col3, col4 = st.columns(4)
+
+col1.metric("🔥 Steam Total", f"{total_steam:,.1f} ton")
+col2.metric("💧 Condensate Return", f"{total_cond:,.1f} ton")
+col3.metric("📊 Avg Return %", f"{avg_pct:.1f}%")
+
+if avg_pct >= target:
+    col4.success("🟢 STATUS : NORMAL")
+elif avg_pct >= target - 5:
+    col4.warning("🟡 STATUS : WATCH")
+else:
+    col4.error("🔴 STATUS : ALARM")
+import plotly.express as px
+
+fig = px.density_heatmap(
+    df,
+    x=df["date"].dt.day,
+    y=df["date"].dt.month,
+    z="condensate_pct",
+    color_continuous_scale="RdYlGn",
+    title="Condensate Return Heatmap"
+)
+
+st.plotly_chart(fig, use_container_width=True)
+df["loss"] = df["steam_total"] - df["condensate_return"]
+
+top_loss = df.sort_values("loss", ascending=False).head(10)
+
+st.subheader("🔻 TOP 10 Steam Loss Days")
+st.dataframe(top_loss[[
+    "date",
+    "steam_total",
+    "condensate_return",
+    "loss",
+    "condensate_pct"
+]])
+monthly = df.resample("M", on="date").mean(numeric_only=True)
+
+fig = px.line(
+    monthly,
+    y="condensate_pct",
+    markers=True,
+    title="Monthly Condensate Efficiency Trend"
+)
+
+st.plotly_chart(fig, use_container_width=True)
