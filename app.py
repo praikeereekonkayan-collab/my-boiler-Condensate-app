@@ -23,18 +23,31 @@ CSV_URL = (
 def load_data():
     df = pd.read_csv(CSV_URL)
 
+    # ลบคอลัมน์ขยะ
+    df = df.loc[:, ~df.columns.str.contains("unnamed", case=False)]
+
+    # clean column name
     df.columns = (
-        df.columns
+        df.columns.astype(str)
         .str.strip()
         .str.lower()
         .str.replace(" ", "_")
     )
 
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    # 🔥 หา column วันที่อัตโนมัติ
+    date_col = None
+    for c in df.columns:
+        if "date" in c or "วัน" in c:
+            date_col = c
+            break
+
+    if date_col:
+        df["date"] = pd.to_datetime(df[date_col], errors="coerce")
+    else:
+        st.error("❌ ไม่พบคอลัมน์วันที่ (date)")
+        st.stop()
 
     return df
-
-df = load_data()
 
 # =============================
 # SIDEBAR FILTER
