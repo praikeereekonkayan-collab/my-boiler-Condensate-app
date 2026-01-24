@@ -1,6 +1,8 @@
 streamlit
 pandas
-plotly
-openpyxl
-reportlab
+matplotlib
+numpy
+requests
+fpdf
+
 
