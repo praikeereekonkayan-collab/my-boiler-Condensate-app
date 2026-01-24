@@ -23,37 +23,10 @@ CSV_URL = (
 def load_data():
     df = pd.read_csv(CSV_URL)
 
-    df = df.loc[:, ~df.columns.str.contains("unnamed", case=False)]
-
-    df.columns = (
-        df.columns.astype(str)
-        .str.strip()
-        .str.lower()
-        .str.replace(" ", "_")
-    )
-
-    # หา column วันที่
-    date_col = None
-    for c in df.columns:
-        if "date" in c or "วัน" in c:
-            date_col = c
-            break
-
-    if date_col:
-        df["date"] = pd.to_datetime(df[date_col], errors="coerce")
-    else:
-        # ⭐ สำคัญ: ยัง return df กลับไป
-        df["date"] = pd.NaT
-
-    return df
-@st.cache_data(ttl=300)
-def load_data():
-    df = pd.read_csv(CSV_URL)
-
     # ลบคอลัมน์ขยะ
     df = df.loc[:, ~df.columns.str.contains("unnamed", case=False)]
 
-    # clean column name
+    # ทำความสะอาดชื่อคอลัมน์
     df.columns = (
         df.columns.astype(str)
         .str.strip()
@@ -61,20 +34,22 @@ def load_data():
         .str.replace(" ", "_")
     )
 
-    # 🔥 หา column วันที่อัตโนมัติ
+    # หา date column อัตโนมัติ
     date_col = None
     for c in df.columns:
         if "date" in c or "วัน" in c:
             date_col = c
             break
 
-    if date_col:
-        df["date"] = pd.to_datetime(df[date_col], errors="coerce")
-    else:
+    if date_col is None:
         st.error("❌ ไม่พบคอลัมน์วันที่ (date)")
-        st.stop()
+        return None
+
+    df["date"] = pd.to_datetime(df[date_col], errors="coerce")
+    df = df.dropna(subset=["date"])
 
     return df
+
 
 # =============================
 # SIDEBAR FILTER
