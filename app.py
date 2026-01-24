@@ -2,21 +2,19 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# =============================
-# CONFIG
-# =============================
 st.set_page_config(
-    page_title="Factory Dashboard",
+    page_title="Factory Steam Dashboard",
     layout="wide"
 )
 
 # =============================
-# GOOGLE SHEET (ใช้งานได้ชัวร์)
+# GOOGLE SHEET
 # =============================
-
-CSV_URL = "https://docs.google.com/spreadsheets/d/1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco/gviz/tq?tqx=out:csv&sheet=DATA_DASHBOARD"
-
-
+CSV_URL = (
+    "https://docs.google.com/spreadsheets/d/"
+    "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
+    "/gviz/tq?tqx=out:csv&sheet=data_dashboard"
+)
 
 # =============================
 # LOAD DATA
@@ -24,67 +22,84 @@ CSV_URL = "https://docs.google.com/spreadsheets/d/1G_ikK60FZUgctnM7SLZ4Ss0p6demB
 @st.cache_data(ttl=300)
 def load_data():
     df = pd.read_csv(CSV_URL)
-    df.columns = df.columns.str.strip()
-
-    if "date" in df.columns:
-        df["date"] = pd.to_datetime(df["date"], errors="coerce")
-
+    df.columns = df.columns.str.lower().str.strip()
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.dropna(subset=["date"])
     return df
 
 df = load_data()
-
-# =============================
-# FUNCTION
-# =============================
-def plot_chart(df, y, title, unit=""):
-    fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(df["date"], df[y], marker="o")
-    ax.set_title(title)
-    ax.set_ylabel(unit)
-    ax.grid(True)
-    st.pyplot(fig)
 
 # =============================
 # SIDEBAR
 # =============================
 st.sidebar.header("📅 เลือกช่วงเวลา")
 
-if "date" in df.columns:
-    start = st.sidebar.date_input("วันเริ่ม", df["date"].min())
-    end = st.sidebar.date_input("วันสิ้นสุด", df["date"].max())
+start = st.sidebar.date_input("วันเริ่ม", df["date"].min())
+end = st.sidebar.date_input("วันสิ้นสุด", df["date"].max())
 
-    df = df[(df["date"] >= pd.to_datetime(start)) &
-            (df["date"] <= pd.to_datetime(end))]
+df = df[
+    (df["date"] >= pd.to_datetime(start)) &
+    (df["date"] <= pd.to_datetime(end))
+]
+
+# =============================
+# MONTHLY SUMMARY
+# =============================
+df["month"] = df["date"].dt.to_period("M")
+
+monthly = df.groupby("month").agg({
+    "steam_total": "sum",
+    "condensate_return": "mean",
+    "target_pct": "mean"
+}).reset_index()
+
+monthly["month"] = monthly["month"].astype(str)
 
 # =============================
 # DASHBOARD
 # =============================
-st.title("🏭 Factory Dashboard (Google Sheet Live)")
+st.title("🏭 Factory Steam Dashboard")
 st.success("เชื่อม Google Sheet สำเร็จ ✅")
 
+# KPI
 col1, col2, col3 = st.columns(3)
 
-if "steam" in df.columns:
-    col1.metric("Steam รวม", f"{df['steam'].sum():,.0f}", "ton")
-
-if "water" in df.columns:
-    col2.metric("Water รวม", f"{df['water'].sum():,.0f}", "m³")
-
-if "condensate" in df.columns:
-    col3.metric("Condensate เฉลี่ย", f"{df['condensate'].mean():.1f}", "%")
+col1.metric("🔥 Steam รวม", f"{df['steam_total'].sum():,.0f}", "ton")
+col2.metric("💧 Condensate เฉลี่ย", f"{df['condensate_return'].mean():.1f}", "%")
+col3.metric("🎯 Target", f"{df['target_pct'].mean()*100:.0f}", "%")
 
 st.divider()
 
-if "steam" in df.columns:
-    plot_chart(df, "steam", "Steam Usage", "ton/day")
+# =============================
+# GRAPH DAILY
+# =============================
+fig1, ax1 = plt.subplots(figsize=(12, 4))
+ax1.plot(df["date"], df["steam_total"], marker="o")
+ax1.set_title("Steam Usage (Daily)")
+ax1.set_ylabel("Ton/day")
+ax1.grid(True)
+st.pyplot(fig1)
 
-if "water" in df.columns:
-    plot_chart(df, "water", "Water Usage", "m³/day")
-
-if "condensate" in df.columns:
-    plot_chart(df, "condensate", "Condensate Return", "%")
+fig2, ax2 = plt.subplots(figsize=(12, 4))
+ax2.plot(df["date"], df["condensate_return"], marker="o")
+ax2.axhline(df["target_pct"].mean()*100, linestyle="--")
+ax2.set_title("Condensate Return (Daily)")
+ax2.set_ylabel("%")
+ax2.grid(True)
+st.pyplot(fig2)
 
 st.divider()
-st.subheader("📋 ข้อมูลจาก Google Sheet")
-st.dataframe(df, use_container_width=True)
 
+# =============================
+# MONTHLY TREND
+# =============================
+st.subheader("📈 แนวโน้มรายเดือน")
+
+fig3, ax3 = plt.subplots(figsize=(12, 4))
+ax3.plot(monthly["month"], monthly["steam_total"], marker="o")
+ax3.set_title("Steam Monthly Trend")
+ax3.set_ylabel("Ton")
+ax3.grid(True)
+st.pyplot(fig3)
+
+st.dataframe(monthly, use_container_width=True)
