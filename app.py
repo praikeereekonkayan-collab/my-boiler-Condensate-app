@@ -13,10 +13,9 @@ st.set_page_config(
 # =============================
 # GOOGLE SHEET (ใช้งานได้ชัวร์)
 # =============================
-CSV_URL = (
-    "https://docs.google.com/spreadsheets/d/"
-    "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
-    "/gviz/tq?tqx=out:csv"
+
+CSV_URL = "https://docs.google.com/spreadsheets/d/1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco/gviz/tq?tqx=out:csv&sheet=DATA_DASHBOARD"
+
 )
 
 # =============================
