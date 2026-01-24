@@ -304,3 +304,152 @@ alert_once_per_day(
     latest["condensate_pct"],
     latest["loss_total_baht"]
 )
+st.divider()
+st.subheader("🤖 AI วิเคราะห์สาเหตุเชิงลึก")
+
+def deep_ai_analysis(df):
+    last3 = df.tail(3)
+    last7 = df.tail(7)
+
+    result = []
+
+    if last3["condensate_pct"].mean() < 0.70:
+        result.append("🔴 %Cond ต่ำต่อเนื่องหลายวัน → เสี่ยงสูญเสียระยะยาว")
+
+    if last3["condensate_return"].mean() < last7["condensate_return"].mean() * 0.85:
+        result.append("💧 Condensate กลับลดลงรวดเร็ว")
+
+    if last3["steam_total"].mean() > last7["steam_total"].mean() * 1.15:
+        result.append("🔥 Steam Load เพิ่มผิดปกติ")
+
+    if last3["diff"].mean() < -0.10:
+        result.append("⚠️ Diff ติดลบมาก → สงสัย Drain เปิดค้าง / ท่อรั่ว")
+
+    if not result:
+        result.append("🟢 ระบบปกติ ไม่พบแนวโน้มผิดปกติ")
+
+    return result
+
+
+for r in deep_ai_analysis(df):
+    st.write("•", r)
+st.divider()
+st.subheader("📊 เปรียบเทียบประสิทธิภาพรายเดือน")
+
+df["month"] = df["date"].dt.to_period("M")
+
+summary = df.groupby("month").agg(
+    avg_pct=("condensate_pct", "mean"),
+    loss=("loss_total_baht", "sum")
+).reset_index()
+
+if len(summary) >= 2:
+    m1 = summary.iloc[-1]
+    m2 = summary.iloc[-2]
+
+    st.write(f"📅 เดือนนี้: {m1['month']}")
+    st.write(f"📅 เดือนก่อน: {m2['month']}")
+
+    st.metric(
+        "Avg %Cond",
+        f"{m1['avg_pct']:.2f} %",
+        f"{(m1['avg_pct']-m2['avg_pct']):+.2f}"
+    )
+
+    st.metric(
+        "Loss (บาท)",
+        f"{m1['loss']:,.0f}",
+        f"{(m1['loss']-m2['loss']):+,.0f}"
+    )
+else:
+    st.info("ยังมีข้อมูลไม่ครบ 2 เดือน")
+st.divider()
+st.subheader("📉 ตรวจจับการดรอปผิดปกติ")
+
+df["pct_change"] = df["condensate_pct"].diff()
+
+drop = df[df["pct_change"] < -0.15]
+
+if not drop.empty:
+    st.error("🚨 พบการดรอปของ %Condensate ผิดปกติ")
+    st.dataframe(drop[["date", "condensate_pct", "pct_change"]])
+else:
+    st.success("ไม่พบการดรอปผิดปกติ")
+st.divider()
+st.subheader("📱 Control Room View")
+
+col1, col2, col3 = st.columns(3)
+
+today = df.iloc[-1]
+
+col1.metric("📅 วันนี้", today["date"].date())
+col2.metric("♻️ %Cond", f"{today['condensate_pct']:.2f}%")
+col3.metric("💸 Loss", f"{today['loss_total_baht']:,.0f} บาท")
+
+if today["condensate_pct"] < 0.70:
+    st.error("🔴 ALERT : CONDENSATE ต่ำกว่า KPI")
+else:
+    st.success("🟢 ระบบปกติ")
+st.divider()
+st.subheader("⚙️ Steam Efficiency Index (SEI)")
+
+# Steam stability (ยิ่ง std ต่ำยิ่งดี)
+steam_std = df["steam_total"].rolling(7).std()
+steam_stability = 1 - (steam_std / df["steam_total"].rolling(7).mean())
+steam_stability = steam_stability.clip(0, 1)
+
+df["sei"] = (
+    df["condensate_pct"] * 100 * 0.6
+    + steam_stability * 100 * 0.4
+)
+
+latest_sei = df["sei"].iloc[-1]
+
+col1, col2 = st.columns(2)
+
+col1.metric("SEI ล่าสุด", f"{latest_sei:.1f}")
+
+if latest_sei >= 85:
+    col2.success("🟢 ระบบไอน้ำมีประสิทธิภาพดีมาก")
+elif latest_sei >= 75:
+    col2.warning("🟡 ประสิทธิภาพปานกลาง")
+else:
+    col2.error("🔴 ระบบไอน้ำต้องปรับปรุงด่วน")
+fig_sei = px.line(
+    df,
+    x="date",
+    y="sei",
+    title="📈 Steam Efficiency Index Trend",
+    markers=True
+)
+
+fig_sei.add_hline(y=85, line_dash="dash", annotation_text="GOOD")
+fig_sei.add_hline(y=75, line_dash="dash", annotation_text="WARNING")
+
+st.plotly_chart(fig_sei, use_container_width=True)
+st.divider()
+st.subheader("🧠 AI แนะนำแนวทางแก้ไข")
+
+def ai_recommendation(row):
+    rec = []
+
+    if row["condensate_pct"] < 0.70:
+        rec.append("🔧 ตรวจสอบ Steam Trap ทุกจุด (เสี่ยงค้างเปิด)")
+
+    if row["diff"] < -0.10:
+        rec.append("💨 ตรวจสอบท่อรั่ว / Vent / Drain")
+
+    if row["steam_total"] > df["steam_total"].mean() * 1.15:
+        rec.append("🔥 ตรวจสอบการใช้ Steam หน้างาน (Overload)")
+
+    if row["sei"] < 75:
+        rec.append("📉 ประสิทธิภาพระบบต่ำ → ควรทำ Steam Audit")
+
+    if not rec:
+        rec.append("✅ ระบบปกติ ไม่ต้องดำเนินการ")
+
+    return rec
+
+
+for r in ai_recommendation(df.iloc[-1]):
+    st.write("•", r)
