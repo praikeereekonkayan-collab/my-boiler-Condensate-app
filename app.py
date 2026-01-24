@@ -19,6 +19,9 @@ CSV_URL = (
 # =============================
 # LOAD DATA
 # =============================
+# =============================
+# LOAD DATA
+# =============================
 @st.cache_data(ttl=300)
 def load_data():
     df = pd.read_csv(CSV_URL)
@@ -49,6 +52,15 @@ def load_data():
     df = df.dropna(subset=["date"])
 
     return df
+
+
+# =============================
+# RUN
+# =============================
+df = load_data()
+
+if df is None or df.empty:
+    st.stop()
 
 
 # =============================
