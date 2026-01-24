@@ -144,3 +144,58 @@ top10 = (
 )
 
 st.dataframe(top10.style.format({"loss_total_baht": "{:,.0f}"}))
+st.divider()
+st.subheader("📅 เลือกช่วงวันที่")
+
+min_date = df["date"].min()
+max_date = df["date"].max()
+
+start_date, end_date = st.slider(
+    "เลือกช่วงวันที่",
+    min_value=min_date.date(),
+    max_value=max_date.date(),
+    value=(min_date.date(), max_date.date())
+)
+
+df_range = df[
+    (df["date"].dt.date >= start_date)
+    & (df["date"].dt.date <= end_date)
+]
+st.divider()
+st.subheader("📊 KPI SUMMARY")
+
+col1, col2, col3, col4 = st.columns(4)
+
+avg_pct = df_range["condensate_pct"].mean()
+total_loss = df_range["loss_total_baht"].sum()
+avg_steam = df_range["steam_total"].mean()
+avg_return = df_range["condensate_return"].mean()
+
+col1.metric("♻️ Avg %Cond", f"{avg_pct:.2f} %")
+col2.metric("💸 Loss รวม", f"{total_loss:,.0f} บาท")
+col3.metric("🔥 Steam เฉลี่ย", f"{avg_steam:.1f}")
+col4.metric("💧 Cond Return", f"{avg_return:.1f}")
+st.divider()
+
+if avg_pct >= 0.80:
+    st.success("🟢 ระบบ Condensate ดีมาก")
+elif avg_pct >= 0.70:
+    st.warning("🟡 เริ่มต่ำกว่าเป้า ควรติดตาม")
+else:
+    st.error("🔴 Condensate ต่ำกว่า KPI — ต้องแก้ไขด่วน")
+loss_break = df_range[[
+    "loss_water_baht",
+    "loss_chem_baht",
+    "loss_fuel_baht"
+]].sum().reset_index()
+
+loss_break.columns = ["type", "baht"]
+
+fig_loss = px.pie(
+    loss_break,
+    names="type",
+    values="baht",
+    title="💸 สัดส่วนเงินสูญเสีย"
+)
+
+st.plotly_chart(fig_loss, use_container_width=True)
