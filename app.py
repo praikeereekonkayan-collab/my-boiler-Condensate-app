@@ -19,9 +19,6 @@ SHEET_ID = CSV_URL = (
     "/gviz/tq?tqx=out:csv"
 )
 
-
-CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID}"
-
 # =============================
 # LOAD DATA
 # =============================
