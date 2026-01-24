@@ -199,3 +199,108 @@ fig_loss = px.pie(
 )
 
 st.plotly_chart(fig_loss, use_container_width=True)
+st.divider()
+st.subheader("🧠 AI วิเคราะห์สาเหตุ Condensate ต่ำ")
+
+def analyze_root_cause(df):
+    last7 = df.tail(7)
+
+    avg_pct = last7["condensate_pct"].mean()
+    avg_return = last7["condensate_return"].mean()
+    avg_steam = last7["steam_total"].mean()
+    avg_diff = last7["diff"].mean()
+
+    reasons = []
+
+    if avg_pct < 0.70:
+        reasons.append("❌ %Condensate ต่ำกว่ามาตรฐาน")
+
+    if avg_return < df["condensate_return"].mean() * 0.9:
+        reasons.append("💧 ปริมาณ Condensate กลับต่ำกว่าค่าเฉลี่ย")
+
+    if avg_steam > df["steam_total"].mean() * 1.1:
+        reasons.append("🔥 การใช้ Steam สูงผิดปกติ")
+
+    if avg_diff < -0.05:
+        reasons.append("⚠️ Diff ติดลบมาก อาจมีการรั่วหรือ Drain เปิดค้าง")
+
+    if len(reasons) == 0:
+        reasons.append("✅ ระบบปกติ ไม่พบความผิดปกติ")
+
+    return reasons
+
+
+for r in analyze_root_cause(df):
+    st.write("•", r)
+st.divider()
+st.subheader("📈 Forecast Loss ล่วงหน้า")
+
+df_forecast = df[["date", "loss_total_baht"]].copy()
+df_forecast["ma7"] = df_forecast["loss_total_baht"].rolling(7).mean()
+
+future = df_forecast.tail(7).copy()
+future["date"] = future["date"] + pd.to_timedelta(7, unit="D")
+
+forecast_df = pd.concat([df_forecast, future])
+
+fig_forecast = px.line(
+    forecast_df,
+    x="date",
+    y="ma7",
+    title="🔮 คาดการณ์ Loss ล่วงหน้า (7 วัน)"
+)
+
+st.plotly_chart(fig_forecast, use_container_width=True)
+def send_line(msg):
+    token = st.secrets.get("LINE_TOKEN", None)
+    if token is None:
+        st.warning("⚠️ ยังไม่ได้ตั้ง LINE_TOKEN")
+        return
+
+    url = "https://notify-api.line.me/api/notify"
+    headers = {"Authorization": f"Bearer {token}"}
+    data = {"message": msg}
+
+    try:
+        requests.post(url, headers=headers, data=data, timeout=10)
+    except:
+        st.error("❌ ส่ง LINE ไม่สำเร็จ")
+def alert_once_per_day(cond_pct, loss):
+    today = str(date.today())
+    file = "alert_log.json"
+
+    try:
+        with open(file, "r") as f:
+            log = json.load(f)
+    except:
+        log = {}
+
+    if cond_pct < 0.70:
+
+        if log.get(today) != "sent":
+
+            msg = f"""
+🚨 CONDENSATE ALERT
+
+📅 วันที่: {today}
+%Condensate = {cond_pct:.2f} %
+KPI = 70 %
+
+💸 Loss = {loss:,.0f} บาท
+"""
+
+            send_line(msg)
+
+            log[today] = "sent"
+            with open(file, "w") as f:
+                json.dump(log, f)
+
+            st.error("🔔 ส่ง LINE แจ้งเตือนแล้ว (วันนี้ครั้งเดียว)")
+        else:
+            st.info("ℹ️ วันนี้แจ้งเตือนไปแล้ว")
+latest = df.iloc[-1]
+
+alert_once_per_day(
+    latest["condensate_pct"],
+    latest["loss_total_baht"]
+)
