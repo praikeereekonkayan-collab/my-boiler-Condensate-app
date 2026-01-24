@@ -275,4 +275,110 @@ c1, c2, c3 = st.columns(3)
 c1.metric("สูญเสียทั้งหมด", f"{df_view['loss_baht'].sum():,.0f} บาท")
 c2.metric("เฉลี่ยต่อช่วง", f"{df_view['loss_baht'].mean():,.0f} บาท")
 c3.metric("สูงสุด", f"{df_view['loss_baht'].max():,.0f} บาท")
+# =============================
+# PHASE 11 : HEATMAP
+# =============================
+
+st.divider()
+st.header("🔥 Heatmap Condensate Return")
+
+df_heat = df.copy()
+df_heat["day"] = df_heat["date"].dt.day
+df_heat["month"] = df_heat["date"].dt.strftime("%Y-%m")
+
+pivot = df_heat.pivot_table(
+    index="day",
+    columns="month",
+    values="condensate_pct",
+    aggfunc="mean"
+)
+
+fig, ax = plt.subplots(figsize=(14, 6))
+im = ax.imshow(pivot, aspect="auto")
+
+ax.set_title("Condensate Return Heatmap")
+ax.set_ylabel("Day")
+ax.set_xlabel("Month")
+
+plt.colorbar(im, ax=ax, label="% Condensate")
+
+st.pyplot(fig)
+# =============================
+# PHASE 12 : TREND ANALYSIS
+# =============================
+
+st.divider()
+st.header("📈 แนวโน้ม Condensate Return")
+
+df_trend = df.copy().sort_values("date")
+
+df_trend["ma7"] = (
+    df_trend["condensate_pct"]
+    .rolling(7)
+    .mean()
+)
+
+fig2, ax2 = plt.subplots(figsize=(14, 5))
+
+ax2.plot(df_trend["date"], df_trend["condensate_pct"], label="Actual")
+ax2.plot(df_trend["date"], df_trend["ma7"], linewidth=3, label="7-Day Avg")
+
+ax2.axhline(
+    df_trend["target_pct"].mean(),
+    linestyle="--",
+    label="Target"
+)
+
+ax2.set_title("Condensate Trend Analysis")
+ax2.set_ylabel("%")
+ax2.grid(True)
+ax2.legend()
+
+st.pyplot(fig2)
+# =============================
+# PHASE 13 : TRAFFIC LIGHT
+# =============================
+
+st.divider()
+st.header("🚦 สถานะระบบ Condensate")
+
+latest = df.sort_values("date").iloc[-1]
+
+actual = latest["condensate_pct"]
+target = latest["target_pct"]
+
+ratio = actual / target if target > 0 else 0
+
+if ratio >= 1:
+    status = "🟢 NORMAL"
+    color = "green"
+    msg = "ระบบทำงานปกติ"
+elif ratio >= 0.9:
+    status = "🟡 WARNING"
+    color = "orange"
+    msg = "เริ่มต่ำกว่าเป้า ควรเฝ้าระวัง"
+else:
+    status = "🔴 ALARM"
+    color = "red"
+    msg = "ต่ำกว่าเป้าอย่างรุนแรง ต้องแก้ไขทันที"
+
+st.markdown(
+    f"""
+    <div style="
+        background-color:{color};
+        padding:30px;
+        border-radius:20px;
+        text-align:center;
+        color:white;
+        font-size:26px;
+        font-weight:bold;
+    ">
+        {status}<br>
+        Actual: {actual:.2f} <br>
+        Target: {target:.2f}<br>
+        {msg}
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
