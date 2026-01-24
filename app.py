@@ -16,7 +16,7 @@ st.set_page_config(
 
 CSV_URL = "https://docs.google.com/spreadsheets/d/1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco/gviz/tq?tqx=out:csv&sheet=DATA_DASHBOARD"
 
-)
+
 
 # =============================
 # LOAD DATA
