@@ -13,8 +13,12 @@ st.set_page_config(
 # =============================
 # GOOGLE SHEET
 # =============================
-SHEET_ID = "1qS-AaBlEmWWlRaCV7_ESLCzBbB0JGVfKCBXrB8PpdCs"
-GID = "0"
+SHEET_ID = CSV_URL = (
+    "https://docs.google.com/spreadsheets/d/"
+    "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
+    "/gviz/tq?tqx=out:csv"
+)
+
 
 CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID}"
 
