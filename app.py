@@ -11,9 +11,9 @@ st.set_page_config(
 )
 
 # =============================
-# GOOGLE SHEET
+# GOOGLE SHEET (ใช้งานได้ชัวร์)
 # =============================
-SHEET_ID = CSV_URL = (
+CSV_URL = (
     "https://docs.google.com/spreadsheets/d/"
     "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
     "/gviz/tq?tqx=out:csv"
@@ -27,7 +27,6 @@ def load_data():
     df = pd.read_csv(CSV_URL)
     df.columns = df.columns.str.strip()
 
-    # แปลงวันที่ (ถ้ามี)
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"], errors="coerce")
 
@@ -46,9 +45,6 @@ def plot_chart(df, y, title, unit=""):
     ax.grid(True)
     st.pyplot(fig)
 
-def kpi(title, value, unit=""):
-    st.metric(title, f"{value:,.2f} {unit}")
-
 # =============================
 # SIDEBAR
 # =============================
@@ -65,10 +61,8 @@ if "date" in df.columns:
 # DASHBOARD
 # =============================
 st.title("🏭 Factory Dashboard (Google Sheet Live)")
-
 st.success("เชื่อม Google Sheet สำเร็จ ✅")
 
-# ===== KPI =====
 col1, col2, col3 = st.columns(3)
 
 if "steam" in df.columns:
@@ -82,7 +76,6 @@ if "condensate" in df.columns:
 
 st.divider()
 
-# ===== GRAPH =====
 if "steam" in df.columns:
     plot_chart(df, "steam", "Steam Usage", "ton/day")
 
@@ -93,7 +86,6 @@ if "condensate" in df.columns:
     plot_chart(df, "condensate", "Condensate Return", "%")
 
 st.divider()
-
-# ===== TABLE =====
 st.subheader("📋 ข้อมูลจาก Google Sheet")
 st.dataframe(df, use_container_width=True)
+
