@@ -247,3 +247,9 @@ fig = px.line(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+df.columns = (
+    df.columns
+    .str.strip()
+    .str.lower()
+    .str.replace(" ", "_")
+)
