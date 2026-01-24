@@ -264,7 +264,7 @@ st.header("💰 มูลค่าความสูญเสีย (Cost Loss)"
 
 steam_cost = st.number_input(
     "ต้นทุน Steam (บาท / ton)",
-    value=1200,
+    value=700,
     step=100
 )
 
