@@ -60,13 +60,7 @@ current_year = datetime.now().year
 year_list = sorted(df["Date"].dt.year.unique())
 
 default_year = current_year if current_year in year_list else year_list[-1]
-
-select_year = st.sidebar.selectbox(
-    "เลือกปี",
-    year_list,
     
-)
-
 view_mode = st.sidebar.radio(
     "รูปแบบการดูข้อมูล",
     ["รายวัน", "รายเดือน", "รายปี"],
@@ -178,73 +172,10 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
-# =========================
-# CONFIG
-# =========================
-st.set_page_config(
-    page_title="Condensate Boiler Dashboard",
-    layout="wide"
-)
 
-st.title("🏭 Condensate Boiler Dashboard")
 
-TARGET = 0.80
 
-# =========================
-# LOAD DATA
-# =========================
-df = pd.read_excel("%CONDENSATE BOILER.xlsx")
-df = df.iloc[2:].copy()
 
-df.columns = [
-    "Date","Soft","BoilerWater","CondReturn","Date2","Target",
-    "CondPercent","Date3","CondBHS","CondBHSPercent",
-    "Date4","SteamTotal","Date5","AVG","x1","DIFF","x2"
-]
-
-df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-df = df.dropna(subset=["Date"])
-
-df["CondPercent"] = pd.to_numeric(df["CondPercent"], errors="coerce")
-df["SteamTotal"] = pd.to_numeric(df["SteamTotal"], errors="coerce")
-
-# =========================
-# SIDEBAR
-# =========================
-st.sidebar.header("📅 ตัวกรองข้อมูล")
-
-current_year = datetime.now().year
-year_list = sorted(df["Date"].dt.year.unique())
-default_year = current_year if current_year in year_list else year_list[-1]
-
-year = st.sidebar.selectbox(
-    "เลือกปี",
-    year_list,
-    index=year_list.index(default_year),
-    key="year"
-)
-
-view = st.sidebar.radio(
-    "รูปแบบการแสดง",
-    ["รายวัน", "รายเดือน", "รายปี"],
-    key="view"
-)
-
-# =========================
-# FILTER
-# =========================
-df_year = df[df["Date"].dt.year == year]
-
-# =========================
-# SUMMARY
-# =========================
-if view == "รายวัน":
-    summary = df_year.groupby(df_year["Date"].dt.date).agg(
-        CondPercent=("CondPercent", "mean"),
-        Steam=("SteamTotal", "sum")
-    ).reset_index()
-    x = "Date"
-    title = f"% Condensate รายวัน ปี {year}"
 
 elif view == "รายเดือน":
     summary = df_year.groupby(df_year["Date"].dt.month).agg(
