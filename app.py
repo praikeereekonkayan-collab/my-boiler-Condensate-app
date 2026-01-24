@@ -384,27 +384,21 @@ st.markdown(
     unsafe_allow_html=True
 )
 # =============================
-# PHASE 14 : DATE RANGE FILTER
+# PHASE 14 : เลือกช่วงวัน
 # =============================
 
-st.divider()
-st.subheader("📅 เลือกช่วงวันที่แสดงกราฟ")
-
-min_date = df["date"].min()
-max_date = df["date"].max()
+df["date"] = pd.to_datetime(df["date"], errors="coerce")
+df = df.dropna(subset=["date"])
+df["date"] = df["date"].dt.date
 
 start_date, end_date = st.date_input(
-    "เลือกช่วงวันเริ่มต้น – วันสิ้นสุด",
-    value=(min_date, max_date),
-    min_value=min_date,
-    max_value=max_date
+    "📅 เลือกช่วงวันเริ่มต้น - สิ้นสุด",
+    value=(df["date"].min(), df["date"].max()),
+    min_value=df["date"].min(),
+    max_value=df["date"].max()
 )
-
-start_date = pd.to_datetime(start_date)
-end_date = pd.to_datetime(end_date)
 
 df_filtered = df[
     (df["date"] >= start_date) &
     (df["date"] <= end_date)
 ]
-
