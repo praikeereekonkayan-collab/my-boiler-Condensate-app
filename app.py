@@ -382,7 +382,7 @@ col1, col2, col3 = st.columns(3)
 
 today = df.iloc[-1]
 
-col1.metric("📅 วันนี้", today["date"].date())
+col1.metric("📅 วันนี้", today["date"].strftime("%d/%m/%Y"))
 col2.metric("♻️ %Cond", f"{today['condensate_pct']:.2f}%")
 col3.metric("💸 Loss", f"{today['loss_total_baht']:,.0f} บาท")
 
