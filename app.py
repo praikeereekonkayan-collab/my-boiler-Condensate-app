@@ -26,26 +26,28 @@ def load_data():
     # ทำความสะอาดชื่อคอลัมน์
     df.columns = (
         df.columns
-        .astype(str)
         .str.strip()
         .str.lower()
         .str.replace(" ", "_")
-        .str.replace("-", "_")
     )
+
+    # 🔥 MAP ชื่อคอลัมน์ภาษาไทย → อังกฤษ
+    df = df.rename(columns={
+        "วันที่": "date",
+        "รวมยอดใช้สตีม": "steam_total",
+        "น้ำ_condensate_กลับ": "condensate_return",
+        "target": "target_pct",
+        "%__condensate": "condensate_pct"
+    })
 
     # ลบคอลัมน์ unnamed
     df = df.loc[:, ~df.columns.str.contains("unnamed")]
 
-    # ตรวจสอบคอลัมน์
-    if "date" not in df.columns:
-        st.error("❌ ไม่พบคอลัมน์ date ใน Google Sheet")
-        st.write("📌 คอลัมน์ที่พบจริง:", df.columns.tolist())
-        st.stop()
-
     # แปลงวันที่
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["date"] = pd.to_datetime(df["date"], dayfirst=True, errors="coerce")
 
     return df
+
 
 
 df = load_data()
