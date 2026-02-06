@@ -117,3 +117,66 @@ st.plotly_chart(fig, use_container_width=True)
 st.subheader("📋 ตารางข้อมูล")
 st.dataframe(filtered)
 
+TARGET = 80  # % condensate target
+def traffic_color(value, target):
+    if pd.isna(value):
+        return "⚪"
+    if value >= target:
+        return "🟢"
+    elif value >= target - 5:
+        return "🟡"
+    else:
+        return "🔴"
+avg_pct = filtered["pct_condensate"].mean()
+status_icon = traffic_color(avg_pct, TARGET)
+
+col1, col2, col3, col4 = st.columns(4)
+
+col1.metric("💨 Steam (ตัน)", f"{filtered['steam_ton'].sum():,.0f}")
+col2.metric("💧 Condensate (ตัน)", f"{filtered['condensate_ton'].sum():,.0f}")
+col3.metric("📊 %Condensate เฉลี่ย", f"{avg_pct:.2f} %")
+col4.metric("🚦 สถานะ", status_icon)
+daily = (
+    filtered.groupby(filtered["date"].dt.date)["pct_condensate"]
+    .mean()
+    .reset_index()
+)
+
+daily["status"] = daily["pct_condensate"].apply(
+    lambda x: "เขียว" if x >= TARGET else
+              "เหลือง" if x >= TARGET - 5 else
+              "แดง"
+)
+fig = px.scatter(
+    daily,
+    x="date",
+    y="pct_condensate",
+    color="status",
+    color_discrete_map={
+        "เขียว": "green",
+        "เหลือง": "orange",
+        "แดง": "red"
+    }
+)
+
+fig.add_hline(
+    y=TARGET,
+    line_dash="dash",
+    annotation_text="Target"
+)
+
+fig.update_layout(
+    xaxis_title="วันที่",
+    yaxis_title="% Condensate",
+    height=450
+)
+
+st.plotly_chart(fig, use_container_width=True)
+filtered["สถานะ"] = filtered["pct_condensate"].apply(
+    lambda x: traffic_color(x, TARGET)
+)
+st.dataframe(
+    filtered,
+    use_container_width=True
+)
+
