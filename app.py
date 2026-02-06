@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-
 # =============================
 # PAGE CONFIG
 # =============================
@@ -16,18 +15,19 @@ st.title("🔥 Boiler Condensate Loss Dashboard")
 st.caption("ข้อมูลจาก Google Sheets : condansate")
 
 # =============================
-# LOAD GOOGLE SHEETS
+# LOAD DATA FROM GOOGLE SHEETS
 # =============================
 @st.cache_data
 def load_data():
-    conn = [connections.gsheets]
-spreadsheet = "https://docs.google.com/spreadsheets/d/XXXXXXXXXXXX/edit"
-
+    conn = st.connection("gsheets")
     df = conn.read(worksheet="condansate")
 
+    # Clean & convert data
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df = df.dropna(subset=["date"])
+
     df["cost_loss"] = pd.to_numeric(df["cost_loss"], errors="coerce").fillna(0)
+    df["boiler"] = df["boiler"].astype(str)
 
     return df
 
@@ -45,8 +45,8 @@ view_type = st.sidebar.selectbox(
 
 boiler_select = st.sidebar.multiselect(
     "เลือก Boiler",
-    options=data["boiler"].unique(),
-    default=data["boiler"].unique()
+    options=sorted(data["boiler"].unique()),
+    default=sorted(data["boiler"].unique())
 )
 
 data = data[data["boiler"].isin(boiler_select)]
@@ -56,7 +56,10 @@ start_date, end_date = st.sidebar.date_input(
     [data["date"].min(), data["date"].max()]
 )
 
-mask = (data["date"] >= pd.to_datetime(start_date)) & (data["date"] <= pd.to_datetime(end_date))
+mask = (
+    (data["date"] >= pd.to_datetime(start_date)) &
+    (data["date"] <= pd.to_datetime(end_date))
+)
 data = data.loc[mask]
 
 # =============================
@@ -68,19 +71,20 @@ if view_type == "รายวัน":
 elif view_type == "รายเดือน":
     data["period"] = data["date"].dt.to_period("M").dt.to_timestamp()
 
-else:
+else:  # รายปี
     data["period"] = data["date"].dt.year
 
 group_data = (
     data.groupby(["period", "boiler"], as_index=False)
-    .agg(cost_loss=("cost_loss", "sum"))
+        .agg(cost_loss=("cost_loss", "sum"))
 )
 
 # =============================
-# KPI
+# KPI SECTION
 # =============================
 total_loss = group_data["cost_loss"].sum()
 avg_loss = group_data.groupby("period")["cost_loss"].sum().mean()
+
 top_boiler = (
     group_data.groupby("boiler")["cost_loss"]
     .sum()
@@ -96,7 +100,7 @@ col3.metric("🔥 Boiler Loss สูงสุด", top_boiler)
 st.divider()
 
 # =============================
-# TREND GRAPH
+# TREND LINE CHART
 # =============================
 fig_trend = px.line(
     group_data,
@@ -111,30 +115,40 @@ fig_trend = px.line(
 fig_trend.update_layout(
     xaxis_title="เวลา",
     yaxis_title="Cost Loss (บาท)",
-    font=dict(size=14),
-    title_font_size=20
+    title_font_size=20,
+    font=dict(size=14)
 )
 
 st.plotly_chart(fig_trend, use_container_width=True)
 
 # =============================
-# BAR GRAPH
+# BAR COMPARISON
 # =============================
-bar_data = group_data.groupby("boiler", as_index=False)["cost_loss"].sum()
+bar_data = (
+    group_data.groupby("boiler", as_index=False)["cost_loss"]
+    .sum()
+)
 
 fig_bar = px.bar(
     bar_data,
     x="boiler",
     y="cost_loss",
-    title="📊 เปรียบเทียบ Cost Loss ตาม Boiler",
     text_auto=".2s",
+    title="📊 เปรียบเทียบ Cost Loss ตาม Boiler",
     template="plotly_white"
+)
+
+fig_bar.update_layout(
+    xaxis_title="Boiler",
+    yaxis_title="Cost Loss (บาท)",
+    title_font_size=20,
+    font=dict(size=14)
 )
 
 st.plotly_chart(fig_bar, use_container_width=True)
 
 # =============================
-# TABLE
+# DATA TABLE
 # =============================
 with st.expander("📄 ตารางข้อมูลสรุป"):
     st.dataframe(group_data, use_container_width=True)
