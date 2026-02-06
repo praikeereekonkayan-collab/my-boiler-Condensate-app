@@ -20,7 +20,9 @@ st.caption("ข้อมูลจาก Google Sheets : condansate")
 # =============================
 @st.cache_data
 def load_data():
-    conn = st.connection("gsheets")
+    conn = [connections.gsheets]
+spreadsheet = "https://docs.google.com/spreadsheets/d/XXXXXXXXXXXX/edit"
+
     df = conn.read(worksheet="condansate")
 
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
