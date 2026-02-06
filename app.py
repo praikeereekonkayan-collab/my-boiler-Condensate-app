@@ -19,16 +19,16 @@ st.caption("ข้อมูลจาก Google Sheets : condansate")
 # =============================
 @st.cache_data
 def load_data():
-    conn = st.connection("gsheets")
-    df = conn.read(worksheet="condansate")
+    url = "https://docs.google.com/spreadsheets/d/XXXX/export?format=csv&sheet=condansate"
+    df = pd.read_csv(url)
 
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df = df.dropna(subset=["date"])
-
     df["cost_loss"] = pd.to_numeric(df["cost_loss"], errors="coerce").fillna(0)
     df["boiler"] = df["boiler"].astype(str)
 
     return df
+
 
 data = load_data()
 
