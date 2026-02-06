@@ -71,7 +71,7 @@ else:
     df_filtered = df_year
 
 # =============================
-# CALCULATION
+# VIEW & FILTER
 # =============================
 if view_type == "รายวัน":
     data = (
