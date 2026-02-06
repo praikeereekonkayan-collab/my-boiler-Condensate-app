@@ -22,7 +22,6 @@ def load_data():
     conn = st.connection("gsheets")
     df = conn.read(worksheet="condansate")
 
-    # Clean & convert data
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df = df.dropna(subset=["date"])
 
@@ -32,7 +31,6 @@ def load_data():
     return df
 
 data = load_data()
-
 
 # =============================
 # SIDEBAR FILTER
