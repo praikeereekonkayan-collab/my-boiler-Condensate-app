@@ -1,17 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import pandas as pd
-
-SHEET_ID = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
-SHEET_NAME = "CONDENSATE"
-
-csv_url = (
-    f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/"
-    f"gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
-)
-
-df = pd.read_csv(csv_url)
 
 # -----------------------------
 # CONFIG
@@ -21,16 +10,21 @@ st.set_page_config(
     layout="wide"
 )
 
+TARGET = 80
+WARNING_GAP = 5
+
 # -----------------------------
-# CONNECT GOOGLE SHEET
+# LOAD GOOGLE SHEET (CSV)
 # -----------------------------
+SHEET_ID = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
+SHEET_NAME = "CONDENSATE"
 
-    "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/drive"
+csv_url = (
+    f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/"
+    f"gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
+)
 
-
-
-SHEET_ID = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco
+df = pd.read_csv(csv_url)
 
 # -----------------------------
 # CLEAN DATA
@@ -44,70 +38,93 @@ df["pct_condensate"] = (
 
 df["pct_condensate"] = df["pct_condensate"].round(2)
 
+def traffic_light(value):
+    if pd.isna(value):
+        return "⚪"
+    elif value >= TARGET:
+        return "🟢"
+    elif value >= TARGET - WARNING_GAP:
+        return "🟡"
+    else:
+        return "🔴"
+
 # -----------------------------
-# SIDEBAR FILTER
+# SIDEBAR
 # -----------------------------
-st.sidebar.header("🔎 เลือกช่วงเวลา")
+st.sidebar.header("🔎 ตัวกรอง")
+
+view_mode = st.sidebar.radio(
+    "รูปแบบการดู",
+    ["รายวัน", "รายเดือน", "รายปี"]
+)
 
 year = st.sidebar.selectbox(
     "เลือกปี",
     sorted(df["date"].dt.year.unique())
 )
 
-month = st.sidebar.selectbox(
-    "เลือกเดือน",
-    ["ทั้งหมด"] + list(range(1, 13))
-)
-
 filtered = df[df["date"].dt.year == year]
 
-if month != "ทั้งหมด":
-    filtered = filtered[filtered["date"].dt.month == month]
+# -----------------------------
+# SUMMARY
+# -----------------------------
+if view_mode == "รายวัน":
+    summary = filtered.groupby(filtered["date"].dt.date).agg(
+        steam_ton=("steam_ton", "sum"),
+        condensate_ton=("condensate_ton", "sum"),
+        pct_condensate=("pct_condensate", "mean")
+    ).reset_index()
+
+elif view_mode == "รายเดือน":
+    summary = filtered.groupby(filtered["date"].dt.to_period("M")).agg(
+        steam_ton=("steam_ton", "sum"),
+        condensate_ton=("condensate_ton", "sum"),
+        pct_condensate=("pct_condensate", "mean")
+    ).reset_index()
+    summary["date"] = summary["date"].astype(str)
+
+else:
+    summary = df.groupby(df["date"].dt.year).agg(
+        steam_ton=("steam_ton", "sum"),
+        condensate_ton=("condensate_ton", "sum"),
+        pct_condensate=("pct_condensate", "mean")
+    ).reset_index()
+    summary.rename(columns={"date": "year"}, inplace=True)
+
+summary["status"] = summary["pct_condensate"].apply(traffic_light)
 
 # -----------------------------
 # KPI
 # -----------------------------
 st.title("🏭 Condensate Boiler Dashboard")
 
-col1, col2, col3 = st.columns(3)
+avg_pct = summary["pct_condensate"].mean()
 
-col1.metric(
-    "💨 Steam (ตัน)",
-    f"{filtered['steam_ton'].sum():,.0f}"
-)
-
-col2.metric(
-    "💧 Condensate (ตัน)",
-    f"{filtered['condensate_ton'].sum():,.0f}"
-)
-
-col3.metric(
-    "📊 %Condensate เฉลี่ย",
-    f"{filtered['pct_condensate'].mean():.2f} %"
-)
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("💨 Steam (ตัน)", f"{summary['steam_ton'].sum():,.0f}")
+c2.metric("💧 Condensate (ตัน)", f"{summary['condensate_ton'].sum():,.0f}")
+c3.metric("📊 %Condensate", f"{avg_pct:.2f} %")
+c4.metric("🚦 สถานะ", traffic_light(avg_pct))
 
 # -----------------------------
 # GRAPH
 # -----------------------------
-st.subheader("📈 % Condensate รายวัน")
-
-daily = (
-    filtered.groupby(filtered["date"].dt.date)["pct_condensate"]
-    .mean()
-    .reset_index()
-)
-
-fig = px.line(
-    daily,
-    x="date",
+fig = px.scatter(
+    summary,
+    x=summary.columns[0],
     y="pct_condensate",
-    markers=True
+    color="status",
+    color_discrete_map={
+        "🟢": "green",
+        "🟡": "orange",
+        "🔴": "red"
+    }
 )
 
-fig.update_layout(
-    xaxis_title="วันที่",
-    yaxis_title="% Condensate",
-    height=450
+fig.add_hline(
+    y=TARGET,
+    line_dash="dash",
+    annotation_text="Target 80%"
 )
 
 st.plotly_chart(fig, use_container_width=True)
@@ -115,69 +132,5 @@ st.plotly_chart(fig, use_container_width=True)
 # -----------------------------
 # TABLE
 # -----------------------------
-st.subheader("📋 ตารางข้อมูล")
-st.dataframe(filtered)
-
-TARGET = 80  # % condensate target
-def traffic_color(value, target):
-    if pd.isna(value):
-        return "⚪"
-    if value >= target:
-        return "🟢"
-    elif value >= target - 5:
-        return "🟡"
-    else:
-        return "🔴"
-avg_pct = filtered["pct_condensate"].mean()
-status_icon = traffic_color(avg_pct, TARGET)
-
-col1, col2, col3, col4 = st.columns(4)
-
-col1.metric("💨 Steam (ตัน)", f"{filtered['steam_ton'].sum():,.0f}")
-col2.metric("💧 Condensate (ตัน)", f"{filtered['condensate_ton'].sum():,.0f}")
-col3.metric("📊 %Condensate เฉลี่ย", f"{avg_pct:.2f} %")
-col4.metric("🚦 สถานะ", status_icon)
-daily = (
-    filtered.groupby(filtered["date"].dt.date)["pct_condensate"]
-    .mean()
-    .reset_index()
-)
-
-daily["status"] = daily["pct_condensate"].apply(
-    lambda x: "เขียว" if x >= TARGET else
-              "เหลือง" if x >= TARGET - 5 else
-              "แดง"
-)
-fig = px.scatter(
-    daily,
-    x="date",
-    y="pct_condensate",
-    color="status",
-    color_discrete_map={
-        "เขียว": "green",
-        "เหลือง": "orange",
-        "แดง": "red"
-    }
-)
-
-fig.add_hline(
-    y=TARGET,
-    line_dash="dash",
-    annotation_text="Target"
-)
-
-fig.update_layout(
-    xaxis_title="วันที่",
-    yaxis_title="% Condensate",
-    height=450
-)
-
-st.plotly_chart(fig, use_container_width=True)
-filtered["สถานะ"] = filtered["pct_condensate"].apply(
-    lambda x: traffic_color(x, TARGET)
-)
-st.dataframe(
-    filtered,
-    use_container_width=True
-)
+st.dataframe(summary, use_container_width=True)
 
