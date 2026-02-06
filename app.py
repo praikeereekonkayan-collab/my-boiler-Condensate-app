@@ -74,23 +74,29 @@ else:
 # CALCULATION
 # =============================
 if view_type == "รายวัน":
-    data = df_filtered.groupby("date", as_index=False).sum()
+    data = (
+        df_filtered
+        .groupby("date", as_index=False)
+        .sum(numeric_only=True)
+    )
 
 elif view_type == "รายเดือน":
-    data = df_year.groupby(
-        df_year["date"].dt.to_period("M")
-    ).sum().reset_index()
+    data = (
+        df_year
+        .groupby(df_year["date"].dt.to_period("M"))
+        .sum(numeric_only=True)
+        .reset_index()
+    )
     data["date"] = data["date"].dt.to_timestamp()
 
 else:  # รายปี
-    data = df.groupby(
-        df["date"].dt.year
-    ).sum().reset_index()
+    data = (
+        df
+        .groupby(df["date"].dt.year)
+        .sum(numeric_only=True)
+        .reset_index()
+    )
     data.rename(columns={"date": "year"}, inplace=True)
-
-# คำนวณ Cost loss
-data["cost_loss"] = data["steam_loss"] * COST_PER_TON
-data["loss_pct"] = (data["condensate_return"] / data["steam_loss"]) * 100
 
 # =============================
 # COLOR FUNCTION
