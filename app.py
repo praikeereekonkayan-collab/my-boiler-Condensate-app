@@ -11,7 +11,9 @@ st.set_page_config(
 )
 
 TARGET = 80
+COST_PER_TON = 664   # <<< ใส่ตรงนี้
 WARNING_GAP = 5
+
 
 # -----------------------------
 # LOAD GOOGLE SHEET (CSV)
