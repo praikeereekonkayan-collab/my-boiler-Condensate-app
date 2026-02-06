@@ -319,7 +319,7 @@ total_cond = day_df["condensate_ton"].sum()
 
 pct_cond = (total_cond / total_steam) * 100 if total_steam > 0 else 0
 TARGET = 80              # %
-COST_PER_TON = 1200      # บาท/ตัน steam (ตัวอย่าง)
+COST_PER_TON = 664      # บาท/ตัน steam (ตัวอย่าง)
 loss_pct = max(0, TARGET - pct_cond)
 
 steam_loss_ton = (loss_pct / 100) * total_steam
@@ -339,7 +339,7 @@ c2.metric("Condensate (ตัน)", f"{total_cond:,.1f}")
 c3.metric("% Condensate", f"{pct_cond:.1f}%", status)
 c4.metric("💸 Cost Loss", f"{cost_loss:,.0f} บาท")
 TARGET = 80          # %
-COST_PER_TON = 1200  # บาท/ตัน
+COST_PER_TON = 664  # บาท/ตัน
 daily = (
     df.groupby(df["date"].dt.date)
     .agg(
@@ -399,7 +399,7 @@ st.bar_chart(
     monthly_plot.set_index("month")["cost_loss"]
 )
 TARGET = 80            # %
-COST_PER_TON = 1200    # บาท/ตัน
+COST_PER_TON = 664    # บาท/ตัน
 
 YELLOW_LIMIT = 10      # % ต่ำกว่า Target = เหลือง
 daily = (
