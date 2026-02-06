@@ -102,7 +102,7 @@ else:  # รายปี
 # =============================
 # DAILY / MONTHLY COST GRAPH
 # =============================
-st.subheader("📈 Cost Loss")
+st.subheader("📈 steam Loss")
 
 fig_cost = px.line(
     data,
