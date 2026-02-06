@@ -1,125 +1,70 @@
-import streamlit as st
 import pandas as pd
 import plotly.express as px
+import streamlit as st
 
-# =============================
-# PAGE CONFIG
-# =============================
-st.set_page_config(
-    page_title="Boiler Condensate Dashboard",
-    layout="wide"
+data["date"] = pd.to_datetime(data["date"], errors="coerce")
+data = data.dropna(subset=["date"])
+
+data["day"] = data["date"].dt.date
+data["month"] = data["date"].dt.to_period("M").astype(str)
+data["year"] = data["date"].dt.year
+min_date = data["date"].min().date()
+max_date = data["date"].max().date()
+
+start_date, end_date = st.date_input(
+    "📅 เลือกช่วงวันที่",
+    value=[min_date, max_date],
+    min_value=min_date,
+    max_value=max_date
 )
 
-st.title("🏭 Boiler Condensate & Cost Loss Dashboard")
-
-# =============================
-# CONFIG
-# =============================
-TARGET_PCT = 80          # %
-YELLOW_LIMIT = 70        # %
-COST_PER_TON = 664       # บาท/ตัน
-
-# =============================
-# LOAD DATA FROM GOOGLE SHEET
-# =============================
-@st.cache_data
-def load_data():
-    url = "https://docs.google.com/spreadsheets/d/1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco/export?format=csv&gid=181659687"
-    df = pd.read_csv(url)
-
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df = df.dropna(subset=["date"])
-
-    return df
-
-df = load_data()
-
-# =============================
-# SIDEBAR FILTER
-# =============================
-st.sidebar.header("🔎 ตัวกรอง")
-
-view_type = st.sidebar.radio(
-    "รูปแบบการดู",
-    ["รายวัน", "รายเดือน", "รายปี"]
+df_filter = data[
+    (data["date"].dt.date >= start_date) &
+    (data["date"].dt.date <= end_date)
+]
+daily = (
+    df_filter.groupby("day", as_index=False)["cost_loss"]
+    .sum()
 )
 
-year = st.sidebar.selectbox(
-    "เลือกปี",
-    sorted(df["date"].dt.year.unique())
+monthly = (
+    df_filter.groupby("month", as_index=False)["cost_loss"]
+    .sum()
 )
 
-df_year = df[df["date"].dt.year == year]
-
-# เลือกช่วงวันที่ (เฉพาะรายวัน)
-if view_type == "รายวัน":
-    min_date = df_year["date"].min()
-    max_date = df_year["date"].max()
-
-    start_date, end_date = st.sidebar.date_input(
-        "📅 เลือกช่วงวันที่",
-        value=(min_date, max_date),
-        min_value=min_date,
-        max_value=max_date
-    )
-
-    df_filtered = df_year[
-        (df_year["date"] >= pd.to_datetime(start_date)) &
-        (df_year["date"] <= pd.to_datetime(end_date))
-    ]
-else:
-    df_filtered = df_year
-
-# =============================
-# VIEW & FILTER
-# =============================
-if view_type == "รายวัน":
-    data = (
-        df_filtered
-        .groupby("date", as_index=False)
-        .sum(numeric_only=True)
-    )
-
-elif view_type == "รายเดือน":
-    data = (
-        df_year
-        .groupby(df_year["date"].dt.to_period("M"))
-        .sum(numeric_only=True)
-        .reset_index()
-    )
-    data["date"] = data["date"].dt.to_timestamp()
-
-else:  # รายปี
-    data = (
-        df
-        .groupby(df["date"].dt.year)
-        .sum(numeric_only=True)
-        .reset_index()
-    )
-    data.rename(columns={"date": "year"}, inplace=True)
-
-
-# =============================
-# DAILY / MONTHLY COST GRAPH
-# =============================
-st.subheader("📈 steam Loss")
-
-fig_cost = px.line(
-    data,
-    x="date" if view_type != "รายปี" else "year",
-    y="pct_condensate",
-    markers=True,
-    title="♻️ % Condensate Return"
+yearly = (
+    df_filter.groupby("year", as_index=False)["cost_loss"]
+    .sum()
 )
+st.subheader("📊 Cost Loss Summary")
 
+col1, col2, col3 = st.columns(3)
 
-st.plotly_chart(fig_cost, use_container_width=True)
+with col1:
+    fig_day = px.line(
+        daily,
+        x="day",
+        y="cost_loss",
+        markers=True,
+        title="รายวัน"
+    )
+    st.plotly_chart(fig_day, use_container_width=True)
 
+with col2:
+    fig_month = px.bar(
+        monthly,
+        x="month",
+        y="cost_loss",
+        title="รายเดือน"
+    )
+    st.plotly_chart(fig_month, use_container_width=True)
 
-# =============================
-# TABLE
-# =============================
-st.subheader("📊 ตารางข้อมูล")
-st.dataframe(data)
-
+with col3:
+    fig_year = px.bar(
+        yearly,
+        x="year",
+        y="cost_loss",
+        title="รายปี"
+    )
+    st.plotly_chart(fig_year, use_container_width=True)
 
