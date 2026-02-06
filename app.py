@@ -98,18 +98,6 @@ else:  # รายปี
     )
     data.rename(columns={"date": "year"}, inplace=True)
 
-# =============================
-# COLOR FUNCTION
-# =============================
-def loss_color(pct):
-    if pct >= TARGET_PCT:
-        return "green"
-    elif pct >= YELLOW_LIMIT:
-        return "yellow"
-    else:
-        return "red"
-
-data["color"] = data["loss_pct"].apply(loss_color)
 
 # =============================
 # DAILY / MONTHLY COST GRAPH
