@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from streamlit_gsheets import GSheetsConnection
+
 
 # =============================
 # PAGE CONFIG
@@ -16,16 +16,15 @@ st.title("🔥 Boiler Condensate Loss Dashboard")
 st.caption("ข้อมูลจาก Google Sheets : condansate")
 
 # =============================
-# CONNECT GOOGLE SHEETS
+# LOAD GOOGLE SHEETS
 # =============================
 @st.cache_data
 def load_data():
-    conn = st.connection("gsheets", type=GSheetsConnection)
+    conn = st.connection("gsheets")
     df = conn.read(worksheet="condansate")
 
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df = df.dropna(subset=["date"])
-
     df["cost_loss"] = pd.to_numeric(df["cost_loss"], errors="coerce").fillna(0)
 
     return df
