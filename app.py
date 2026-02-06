@@ -115,22 +115,6 @@ fig_cost = px.line(
 
 st.plotly_chart(fig_cost, use_container_width=True)
 
-# =============================
-# YTD COST LOSS
-# =============================
-if view_type != "รายปี":
-    data = data.sort_values("date")
-    data["ytd_cost"] = data["cost_loss"].cumsum()
-
-    fig_ytd = px.line(
-        data,
-        x="date",
-        y="ytd_cost",
-        markers=True,
-        title=f"📉 YTD Cost Loss ปี {year}"
-    )
-
-    st.plotly_chart(fig_ytd, use_container_width=True)
 
 # =============================
 # TABLE
