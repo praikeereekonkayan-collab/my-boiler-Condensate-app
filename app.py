@@ -9,6 +9,12 @@ st.set_page_config(
     page_title="Condensate Boiler Dashboard",
     layout="wide"
 )
+# -----------------------------
+# CONFIG
+# -----------------------------
+TARGET = 80          # % target
+YELLOW_LIMIT = 70    # % ต่ำกว่า target เริ่มเหลือง
+COST_PER_TON = 664
 
 TARGET = 80
 COST_PER_TON = 664   # <<< ใส่ตรงนี้
