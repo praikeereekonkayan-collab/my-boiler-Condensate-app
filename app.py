@@ -1,4 +1,21 @@
 import pandas as pd
+import streamlit as st
+
+# 1) โหลดข้อมูลก่อน
+data = pd.read_csv("your_file.csv")  
+# หรือถ้ามาจาก Google Sheets / st.connection ก็ได้
+
+# 2) แปลงคอลัมน์ date
+data["date"] = pd.to_datetime(data["date"], errors="coerce")
+
+# 3) ลบแถวที่ date ว่าง
+data = data.dropna(subset=["date"])
+conn = st.connection("gsheets", type=GSheetsConnection)
+data = conn.read(worksheet="Sheet1")
+
+data["date"] = pd.to_datetime(data["date"], errors="coerce")
+data = data.dropna(subset=["date"])
+import pandas as pd
 import plotly.express as px
 import streamlit as st
 
