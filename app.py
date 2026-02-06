@@ -1,8 +1,17 @@
 import streamlit as st
 import pandas as pd
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import plotly.express as px
+import pandas as pd
+
+SHEET_ID = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
+SHEET_NAME = "CONDENSATE"
+
+csv_url = (
+    f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/"
+    f"gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
+)
+
+df = pd.read_csv(csv_url)
 
 # -----------------------------
 # CONFIG
@@ -15,21 +24,13 @@ st.set_page_config(
 # -----------------------------
 # CONNECT GOOGLE SHEET
 # -----------------------------
-scope = [
+
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive"
-]
 
-creds = ServiceAccountCredentials.from_json_keyfile_name(
-    "credentials.json", scope
-)
-client = gspread.authorize(creds)
 
-SHEET_ID = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
-sheet = client.open_by_key(SHEET_ID).worksheet("CONDENSATE")
 
-data = sheet.get_all_records()
-df = pd.DataFrame(data)
+SHEET_ID = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco
 
 # -----------------------------
 # CLEAN DATA
