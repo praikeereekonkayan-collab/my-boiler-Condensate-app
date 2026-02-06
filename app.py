@@ -17,16 +17,21 @@ st.caption("ระบบติดตาม Cost Loss จาก Condensate Return
 # =============================
 # LOAD DATA
 # =============================
-@st.cache_data
-def load_data():
-    df = pd.read_csv("data.csv")
+st.sidebar.header("📂 นำเข้าข้อมูล")
 
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df = df.dropna(subset=["date"])
+uploaded_file = st.sidebar.file_uploader(
+    "อัปโหลดไฟล์ CSV",
+    type=["csv"]
+)
 
-    return df
+if uploaded_file is None:
+    st.warning("⬅️ กรุณาอัปโหลดไฟล์ data.csv")
+    st.stop()
 
-data = load_data()
+data = pd.read_csv(uploaded_file)
+data["date"] = pd.to_datetime(data["date"], errors="coerce")
+data = data.dropna(subset=["date"])
+
 
 # =============================
 # SIDEBAR FILTER
