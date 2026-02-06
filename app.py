@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from streamlit_gsheets import GSheetsConnection
 
 # =============================
 # PAGE CONFIG
@@ -12,26 +13,24 @@ st.set_page_config(
 )
 
 st.title("🔥 Boiler Condensate Loss Dashboard")
-st.caption("ระบบติดตาม Cost Loss จาก Condensate Return")
+st.caption("ข้อมูลจาก Google Sheets : condansate")
 
 # =============================
-# LOAD DATA
+# CONNECT GOOGLE SHEETS
 # =============================
-st.sidebar.header("📂 นำเข้าข้อมูล")
+@st.cache_data
+def load_data():
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    df = conn.read(worksheet="condansate")
 
-uploaded_file = st.sidebar.file_uploader(
-    "อัปโหลดไฟล์ CSV",
-    type=["csv"]
-)
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.dropna(subset=["date"])
 
-if uploaded_file is None:
-    st.warning("⬅️ กรุณาอัปโหลดไฟล์ data.csv")
-    st.stop()
+    df["cost_loss"] = pd.to_numeric(df["cost_loss"], errors="coerce").fillna(0)
 
-data = pd.read_csv(uploaded_file)
-data["date"] = pd.to_datetime(data["date"], errors="coerce")
-data = data.dropna(subset=["date"])
+    return df
 
+data = load_data()
 
 # =============================
 # SIDEBAR FILTER
@@ -60,7 +59,7 @@ mask = (data["date"] >= pd.to_datetime(start_date)) & (data["date"] <= pd.to_dat
 data = data.loc[mask]
 
 # =============================
-# AGGREGATE
+# AGGREGATE DATA
 # =============================
 if view_type == "รายวัน":
     data["period"] = data["date"]
@@ -73,11 +72,11 @@ else:
 
 group_data = (
     data.groupby(["period", "boiler"], as_index=False)
-    .agg({"cost_loss": "sum"})
+    .agg(cost_loss=("cost_loss", "sum"))
 )
 
 # =============================
-# KPI SECTION
+# KPI
 # =============================
 total_loss = group_data["cost_loss"].sum()
 avg_loss = group_data.groupby("period")["cost_loss"].sum().mean()
@@ -96,7 +95,7 @@ col3.metric("🔥 Boiler Loss สูงสุด", top_boiler)
 st.divider()
 
 # =============================
-# TREND LINE
+# TREND GRAPH
 # =============================
 fig_trend = px.line(
     group_data,
@@ -118,12 +117,9 @@ fig_trend.update_layout(
 st.plotly_chart(fig_trend, use_container_width=True)
 
 # =============================
-# BAR COMPARISON
+# BAR GRAPH
 # =============================
-bar_data = (
-    group_data.groupby("boiler", as_index=False)["cost_loss"]
-    .sum()
-)
+bar_data = group_data.groupby("boiler", as_index=False)["cost_loss"].sum()
 
 fig_bar = px.bar(
     bar_data,
@@ -134,17 +130,10 @@ fig_bar = px.bar(
     template="plotly_white"
 )
 
-fig_bar.update_layout(
-    xaxis_title="Boiler",
-    yaxis_title="Cost Loss (บาท)",
-    font=dict(size=14),
-    title_font_size=20
-)
-
 st.plotly_chart(fig_bar, use_container_width=True)
 
 # =============================
-# DATA TABLE
+# TABLE
 # =============================
 with st.expander("📄 ตารางข้อมูลสรุป"):
     st.dataframe(group_data, use_container_width=True)
