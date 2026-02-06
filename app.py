@@ -1,6 +1,23 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import streamlit as st
+
+st.set_page_config(layout="wide")
+
+st.sidebar.header("🔎 ตัวกรอง")
+
+view_type = st.sidebar.radio(
+    "รูปแบบการดู",
+    ["รายวัน", "รายเดือน", "รายปี"]
+)
+
+year = st.sidebar.selectbox(
+    "เลือกปี",
+    [2024, 2025]
+)
+
+st.write("เลือก:", view_type, "ปี:", year)
 
 # -----------------------------
 # CONFIG
