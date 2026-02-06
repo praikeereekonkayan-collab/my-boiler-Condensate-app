@@ -107,10 +107,11 @@ st.subheader("📈 Cost Loss")
 fig_cost = px.line(
     data,
     x="date" if view_type != "รายปี" else "year",
-    y="cost_loss",
+    y="pct_condensate",
     markers=True,
-    title="Cost Loss"
+    title="♻️ % Condensate Return"
 )
+
 
 st.plotly_chart(fig_cost, use_container_width=True)
 
