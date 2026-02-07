@@ -109,12 +109,24 @@ with col1:
 
 # Steam Loss
 with col2:
-    fig2 = px.line(
-        filtered,
-        x="date",
-        y="steam_loss",
-        markers=True,
-        title="Steam Loss"
+ fig1 = px.line(
+    plot_df,
+    x="date" if view_type != "รายปี" else "year",
+    y="pct_condensate",
+    title="% Condensate",
+    markers=True
+)
+
+fig1.add_hline(
+    y=TARGET_COND,
+    line_dash="dash",
+    line_color="red",
+    annotation_text="Target",
+    annotation_position="top left"
+)
+
+st.plotly_chart(fig1, use_container_width=True)
+
     )
     st.plotly_chart(fig2, use_container_width=True)
 
@@ -134,6 +146,157 @@ with col3:
 # =============================
 st.subheader("📋 Daily Report")
 st.dataframe(filtered, use_container_width=True)
+st.subheader("📆 เลือกรูปแบบเวลา")
+
+view_type = st.radio(
+    "",
+    ["รายวัน", "รายเดือน", "รายปี"],
+    horizontal=True
+)
+
+plot_df = filtered.copy()
+
+if view_type == "รายเดือน":
+    plot_df = (
+        plot_df
+        .groupby(plot_df["date"].dt.to_period("M"))
+        .mean()
+        .reset_index()
+    )
+    plot_df["date"] = plot_df["date"].dt.to_timestamp()
+
+elif view_type == "รายปี":
+    plot_df = (
+        plot_df
+        .groupby(plot_df["date"].dt.year)
+        .mean()
+        .reset_index()
+    )
+    plot_df.rename(columns={"date": "year"}, inplace=True)
+def kpi(label, value, low, high, unit=""):
+    if value < low:
+        color = "🔵"
+    elif value > high:
+        color = "🔴"
+    else:
+        color = "🟢"
+    return f"{color} {value:.2f}{unit}"
+
+c1, c2, c3 = st.columns(3)
+
+c1.metric(
+    "♻️ % Condensate Avg",
+    kpi("% Condensate", filtered["pct_condensate"].mean(), 0.59, 1.22, "%")
+)
+
+c2.metric(
+    "🔥 Steam Loss Avg",
+    kpi("Steam Loss", filtered["steam_loss"].mean(), 0, 116)
+)
+
+c3.metric(
+    "💨 DIFF Avg",
+    kpi("DIFF", filtered["diff"].mean(), -0.26, 0.53)
+)
+st.subheader("📊 Overview Trend")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    fig1 = px.line(
+        plot_df,
+        x="date" if view_type != "รายปี" else "year",
+        y="pct_condensate",
+        title="% Condensate",
+        markers=True
+    )
+    st.plotly_chart(fig1, use_container_width=True)
+
+with col2:
+    fig2 = px.line(
+        plot_df,
+        x="date" if view_type != "รายปี" else "year",
+        y="steam_loss",
+        title="Steam Loss",
+        markers=True
+    )
+    st.plotly_chart(fig2, use_container_width=True)
+
+with col3:
+    fig3 = px.line(
+        plot_df,
+        x="date" if view_type != "รายปี" else "year",
+        y="diff",
+        title="DIFF",
+        markers=True
+    )
+    st.plotly_chart(fig3, use_container_width=True)
+# =============================
+# TARGET / SPEC
+# =============================
+TARGET_COND = 0.90        # %
+TARGET_STEAM_LOSS = 80    # unit ตามข้อมูลจริง
+TARGET_DIFF = 0.00
+fig2 = px.line(
+    plot_df,
+    x="date" if view_type != "รายปี" else "year",
+    y="steam_loss",
+    title="Steam Loss",
+    markers=True
+)
+
+fig2.add_hline(
+    y=TARGET_STEAM_LOSS,
+    line_dash="dash",
+    line_color="red",
+    annotation_text="Target",
+    annotation_position="top left"
+)
+
+st.plotly_chart(fig2, use_container_width=True)
+fig3 = px.line(
+    plot_df,
+    x="date" if view_type != "รายปี" else "year",
+    y="diff",
+    title="DIFF",
+    markers=True
+)
+
+fig3.add_hline(
+    y=TARGET_DIFF,
+    line_dash="dash",
+    line_color="red",
+    annotation_text="Target",
+    annotation_position="top left"
+)
+
+st.plotly_chart(fig3, use_container_width=True)
+# =============================
+# COST SETTING
+# =============================
+COST_PER_UNIT_STEAM = 120   # บาท / หน่วย (พี่แก้ตามจริง)
+filtered["excess_steam"] = (
+    filtered["steam_loss"] - TARGET_STEAM_LOSS
+).clip(lower=0)
+
+filtered["cost_loss"] = (
+    filtered["excess_steam"] * COST_PER_UNIT_STEAM
+)
+c1, c2, c3, c4 = st.columns(4)
+
+c1.metric("♻️ % Condensate Avg", f"{filtered['pct_condensate'].mean():.2f}%")
+c2.metric("🔥 Steam Loss Avg", f"{filtered['steam_loss'].mean():.2f}")
+c3.metric("💨 DIFF Avg", f"{filtered['diff'].mean():.2f}")
+c4.metric("💰 Cost Loss (฿)", f"{filtered['cost_loss'].sum():,.0f}")
+st.subheader("💸 Cost Loss Trend")
+
+fig_cost = px.bar(
+    plot_df,
+    x="date" if view_type != "รายปี" else "year",
+    y="cost_loss",
+    title="Cost Loss",
+)
+st.plotly_chart(fig_cost, use_container_width=True)
 
 
 
