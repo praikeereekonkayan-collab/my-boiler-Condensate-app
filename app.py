@@ -15,10 +15,9 @@ st.set_page_config(
 # LOAD DATA
 # =============================
 @st.cache_data
-def load_data():
-    sheet_id = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
-    sheet_name = "รายงานประจำวัน"
-    sheet_name_encoded = urllib.parse.quote(sheet_name)
+st.write("📌 ชื่อคอลัมน์ทั้งหมดในชีท")
+st.write(list(df.columns))
+st.stop()
 
     url = (
         f"https://docs.google.com/spreadsheets/d/"
@@ -34,6 +33,33 @@ def load_data():
     return df
 
 df = load_data()
+# =============================
+# NORMALIZE COLUMN NAMES
+# =============================
+df.columns = df.columns.str.strip()
+
+COLUMN_MAP = {
+    # --- CONDENSATE ---
+    "%CON Return": "% CON Return",
+    "% CONRETURN": "% CON Return",
+    "% CON_Return": "% CON Return",
+    "%CON_RETURN": "% CON Return",
+    "% คอนเดนเสท": "% CON Return",
+    "CON Return %": "% CON Return",
+
+    # --- STEAM ---
+    "ยอดรวมการใช้ Steam": "สรุปยอดรวมการใช้สตีม",
+    "Steam Total": "สรุปยอดรวมการใช้สตีม",
+
+    # --- DIFF ---
+    "%DIFF": "DIFF",
+
+    # --- TARGET ---
+    "Target": "TARGET",
+    "Target %": "TARGET"
+}
+
+df = df.rename(columns=lambda c: COLUMN_MAP.get(c, c))
 
 # =============================
 # TITLE
@@ -44,7 +70,11 @@ st.caption("ข้อมูลจากรายงานประจำวั�
 # =============================
 # SIDEBAR FILTER
 # =============================
-with st.sidebar:
+if "% CON Return" not in df.columns:
+    st.error("❌ ไม่พบคอลัมน์ % CON Return กรุณาตรวจสอบชื่อคอลัมน์ใน Google Sheet")
+    st.stop()
+
+st.sidebar:
     st.header("🔎 ตัวกรองข้อมูล")
 
     # Date filter
