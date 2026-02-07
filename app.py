@@ -10,15 +10,27 @@ st.set_page_config(
 # =============================
 # LOAD DATA FROM GOOGLE SHEET
 # =============================
+import urllib.parse
+import pandas as pd
+import streamlit as st
+
 @st.cache_data
 def load_data():
     sheet_id = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
     sheet_name = "รายงานประจำวัน"
-    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+
+    sheet_name_encoded = urllib.parse.quote(sheet_name)
+
+    url = (
+        f"https://docs.google.com/spreadsheets/d/"
+        f"{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name_encoded}"
+    )
+
     df = pd.read_csv(url)
     df["วันที่"] = pd.to_datetime(df["วันที่"], errors="coerce")
     df = df.dropna(subset=["วันที่"])
     return df
+
 
 df = load_data()
 
