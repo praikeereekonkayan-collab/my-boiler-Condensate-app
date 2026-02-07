@@ -115,6 +115,15 @@ elif view_type == "รายปี":
         .reset_index()
     )
     plot_df.rename(columns={"date": "year"}, inplace=True)
+years = sorted(filtered["date"].dt.year.unique())
+
+selected_year = st.selectbox(
+    "📅 เลือกปี",
+    years,
+    index=len(years)-1
+)
+
+filtered = filtered[filtered["date"].dt.year == selected_year]
 
 # =============================
 # COST LOSS
@@ -196,6 +205,28 @@ st.plotly_chart(fig_cost, use_container_width=True)
 # =============================
 st.subheader("📋 Daily Report")
 st.dataframe(filtered, use_container_width=True)
+plot_df = filtered.copy()
+
+if view_type == "รายเดือน":
+    plot_df["month"] = plot_df["date"].dt.to_period("M")
+    plot_df = plot_df.groupby("month", as_index=False).mean()
+    plot_df["date"] = plot_df["month"].dt.to_timestamp()
+
+elif view_type == "รายปี":
+    plot_df["year"] = plot_df["date"].dt.year
+    plot_df = plot_df.groupby("year", as_index=False).mean()
+# =============================
+# FILTER DATA
+# =============================
+filtered = df[ ... ].copy()
+view_type = st.radio(
+    "",
+    ["รายวัน", "รายเดือน", "รายปี"],
+    horizontal=True
+)
+# =============================
+# PREPARE PLOT DATA
+# =============================
 plot_df = filtered.copy()
 
 if view_type == "รายเดือน":
