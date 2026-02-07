@@ -196,4 +196,14 @@ st.plotly_chart(fig_cost, use_container_width=True)
 # =============================
 st.subheader("📋 Daily Report")
 st.dataframe(filtered, use_container_width=True)
+plot_df = filtered.copy()
+
+if view_type == "รายเดือน":
+    plot_df["month"] = plot_df["date"].dt.to_period("M")
+    plot_df = plot_df.groupby("month", as_index=False).mean()
+    plot_df["date"] = plot_df["month"].dt.to_timestamp()
+
+elif view_type == "รายปี":
+    plot_df["year"] = plot_df["date"].dt.year
+    plot_df = plot_df.groupby("year", as_index=False).mean()
 
