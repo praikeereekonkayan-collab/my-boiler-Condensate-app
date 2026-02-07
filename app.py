@@ -3,21 +3,19 @@ import pandas as pd
 import plotly.express as px
 import urllib.parse
 
-# =============================
-# PAGE CONFIG
-# =============================
 st.set_page_config(
-    page_title="Boiler & Condensate Dashboard",
+    page_title="Boiler Dashboard",
     layout="wide"
 )
 
 # =============================
-# LOAD DATA
+# LOAD DATA FROM GOOGLE SHEET
 # =============================
 @st.cache_data
-st.write("📌 ชื่อคอลัมน์ทั้งหมดในชีท")
-st.write(list(df.columns))
-st.stop()
+def load_data():
+    sheet_id = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
+    sheet_name = "รายงานประจำวัน"
+    sheet_name_encoded = urllib.parse.quote(sheet_name)
 
     url = (
         f"https://docs.google.com/spreadsheets/d/"
@@ -26,167 +24,83 @@ st.stop()
 
     df = pd.read_csv(url)
 
-    # แปลงวันที่
-    df["วันที่"] = pd.to_datetime(df["วันที่"], errors="coerce")
-    df = df.dropna(subset=["วันที่"])
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.dropna(subset=["date"])
 
     return df
 
 df = load_data()
-# =============================
-# NORMALIZE COLUMN NAMES
-# =============================
-df.columns = df.columns.str.strip()
-
-COLUMN_MAP = {
-    # --- CONDENSATE ---
-    "%CON Return": "% CON Return",
-    "% CONRETURN": "% CON Return",
-    "% CON_Return": "% CON Return",
-    "%CON_RETURN": "% CON Return",
-    "% คอนเดนเสท": "% CON Return",
-    "CON Return %": "% CON Return",
-
-    # --- STEAM ---
-    "ยอดรวมการใช้ Steam": "สรุปยอดรวมการใช้สตีม",
-    "Steam Total": "สรุปยอดรวมการใช้สตีม",
-
-    # --- DIFF ---
-    "%DIFF": "DIFF",
-
-    # --- TARGET ---
-    "Target": "TARGET",
-    "Target %": "TARGET"
-}
-
-df = df.rename(columns=lambda c: COLUMN_MAP.get(c, c))
-
-# =============================
-# TITLE
-# =============================
-st.title("🏭 Boiler & Condensate Performance Dashboard")
-st.caption("ข้อมูลจากรายงานประจำวัน (Google Sheet)")
 
 # =============================
 # SIDEBAR FILTER
 # =============================
-if "% CON Return" not in df.columns:
-    st.error("❌ ไม่พบคอลัมน์ % CON Return กรุณาตรวจสอบชื่อคอลัมน์ใน Google Sheet")
-    st.stop()
+st.sidebar.header("🔎 Filter")
 
-st.sidebar:
-    st.header("🔎 ตัวกรองข้อมูล")
+start_date, end_date = st.sidebar.date_input(
+    "เลือกช่วงวันที่",
+    [df["date"].min(), df["date"].max()]
+)
 
-    # Date filter
-    start_date, end_date = st.date_input(
-        "📅 เลือกช่วงวันที่",
-        [df["วันที่"].min(), df["วันที่"].max()]
-    )
+con_min, con_max = st.sidebar.slider(
+    "% Condensate",
+    float(df["pct_condensate"].min()),
+    float(df["pct_condensate"].max()),
+    (float(df["pct_condensate"].min()), float(df["pct_condensate"].max()))
+)
 
-    # % Condensate
-    con_min, con_max = st.slider(
-        "% คอนเดนเสท (CON Return)",
-        float(df["% CON Return"].min()),
-        float(df["% CON Return"].max()),
-        (
-            float(df["% CON Return"].min()),
-            float(df["% CON Return"].max())
-        )
-    )
+steam_min, steam_max = st.sidebar.slider(
+    "Steam Loss",
+    float(df["steam_loss"].min()),
+    float(df["steam_loss"].max()),
+    (float(df["steam_loss"].min()), float(df["steam_loss"].max()))
+)
 
-    # Steam usage
-    steam_min, steam_max = st.slider(
-        "การใช้สตีม (รวม)",
-        float(df["สรุปยอดรวมการใช้สตีม"].min()),
-        float(df["สรุปยอดรวมการใช้สตีม"].max()),
-        (
-            float(df["สรุปยอดรวมการใช้สตีม"].min()),
-            float(df["สรุปยอดรวมการใช้สตีม"].max())
-        )
-    )
-
-    # DIFF
-    diff_min, diff_max = st.slider(
-        "ประสิทธิภาพการรั่วสตีม (DIFF)",
-        float(df["DIFF"].min()),
-        float(df["DIFF"].max()),
-        (
-            float(df["DIFF"].min()),
-            float(df["DIFF"].max())
-        )
-    )
+diff_min, diff_max = st.sidebar.slider(
+    "DIFF",
+    float(df["diff"].min()),
+    float(df["diff"].max()),
+    (float(df["diff"].min()), float(df["diff"].max()))
+)
 
 # =============================
-# APPLY FILTER
+# FILTER DATA
 # =============================
 filtered = df[
-    (df["วันที่"].between(pd.to_datetime(start_date), pd.to_datetime(end_date))) &
-    (df["% CON Return"].between(con_min, con_max)) &
-    (df["สรุปยอดรวมการใช้สตีม"].between(steam_min, steam_max)) &
-    (df["DIFF"].between(diff_min, diff_max))
+    (df["date"].between(pd.to_datetime(start_date), pd.to_datetime(end_date))) &
+    (df["pct_condensate"].between(con_min, con_max)) &
+    (df["steam_loss"].between(steam_min, steam_max)) &
+    (df["diff"].between(diff_min, diff_max))
 ]
 
 # =============================
-# KPI SECTION
+# TITLE
 # =============================
-k1, k2, k3 = st.columns(3)
-
-k1.metric(
-    "♻️ % คอนเดนเสท เฉลี่ย",
-    f"{filtered['% CON Return'].mean():.2f} %"
-)
-
-k2.metric(
-    "🔥 การใช้สตีมเฉลี่ย",
-    f"{filtered['สรุปยอดรวมการใช้สตีม'].mean():,.0f}"
-)
-
-k3.metric(
-    "💨 Steam Loss (DIFF)",
-    f"{filtered['DIFF'].mean():.2f}"
-)
-
-st.divider()
+st.title("🏭 Boiler & Condensate Dashboard")
 
 # =============================
-# CHARTS
+# KPI
 # =============================
-c1, c2 = st.columns(2)
+c1, c2, c3 = st.columns(3)
+c1.metric("♻️ % Condensate Avg", f"{filtered['pct_condensate'].mean():.2f}%")
+c2.metric("🔥 Steam Loss Avg", f"{filtered['steam_loss'].mean():.2f}")
+c3.metric("💨 DIFF Avg", f"{filtered['diff'].mean():.2f}")
 
-with c1:
-    fig_con = px.line(
-        filtered,
-        x="วันที่",
-        y="% CON Return",
-        markers=True,
-        title="% Condensate Return Trend"
-    )
-    st.plotly_chart(fig_con, use_container_width=True)
-
-with c2:
-    fig_steam = px.line(
-        filtered,
-        x="วันที่",
-        y="สรุปยอดรวมการใช้สตีม",
-        markers=True,
-        title="Steam Usage Trend"
-    )
-    st.plotly_chart(fig_steam, use_container_width=True)
-
-# Steam vs Target
-fig_target = px.bar(
+# =============================
+# CHART
+# =============================
+fig = px.line(
     filtered,
-    x="วันที่",
-    y=["สรุปยอดรวมการใช้สตีม", "TARGET"],
-    barmode="group",
-    title="Steam Usage vs Target"
+    x="date",
+    y=["pct_condensate", "steam_loss"],
+    markers=True
 )
-st.plotly_chart(fig_target, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True)
 
 # =============================
-# DATA TABLE
+# TABLE
 # =============================
-st.subheader("📋 ตารางรายละเอียดรายงานประจำวัน")
+st.subheader("📋 Daily Report")
 st.dataframe(filtered, use_container_width=True)
+
 
 
