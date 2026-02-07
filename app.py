@@ -298,5 +298,18 @@ fig_cost = px.bar(
 )
 st.plotly_chart(fig_cost, use_container_width=True)
 
+# =============================
+# COST LOSS GRAPH
+# =============================
+st.subheader("💸 Cost Loss Trend")
+
+fig_cost = px.bar(
+    plot_df,
+    x="date" if view_type != "รายปี" else "year",
+    y="cost_loss",
+    title="Cost Loss"
+)
+
+st.plotly_chart(fig_cost, use_container_width=True)
 
 
