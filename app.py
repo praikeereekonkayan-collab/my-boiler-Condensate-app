@@ -240,10 +240,10 @@ with col3:
 # =============================
 # TARGET / SPEC
 # =============================
-TARGET_COND = 0.90        # %
-TARGET_STEAM_LOSS = 80    # unit ตามข้อมูลจริง
+TARGET_COND = 0.90          # %
+TARGET_STEAM_LOSS = 80      # unit ตามข้อมูลจริง
 TARGET_DIFF = 0.00
-fig2 = px.line(
+
     plot_df,
     x="date" if view_type != "รายปี" else "year",
     y="steam_loss",
