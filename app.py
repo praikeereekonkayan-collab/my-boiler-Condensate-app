@@ -3,6 +3,9 @@ import pandas as pd
 import plotly.express as px
 import urllib.parse
 
+# =============================
+# PAGE CONFIG
+# =============================
 st.set_page_config(
     page_title="Boiler Dashboard",
     layout="wide"
@@ -37,7 +40,6 @@ df = load_data()
 TARGET_COND = 0.90
 TARGET_STEAM_LOSS = 80
 TARGET_DIFF = 0.00
-
 COST_PER_UNIT_STEAM = 120  # บาท / หน่วย
 
 # =============================
@@ -50,35 +52,14 @@ start_date, end_date = st.sidebar.date_input(
     [df["date"].min(), df["date"].max()]
 )
 
-con_min, con_max = st.sidebar.slider(
-    "% Condensate",
-    float(df["pct_condensate"].min()),
-    float(df["pct_condensate"].max()),
-    (float(df["pct_condensate"].min()), float(df["pct_condensate"].max()))
-)
-
-steam_min, steam_max = st.sidebar.slider(
-    "Steam Loss",
-    float(df["steam_loss"].min()),
-    float(df["steam_loss"].max()),
-    (float(df["steam_loss"].min()), float(df["steam_loss"].max()))
-)
-
-diff_min, diff_max = st.sidebar.slider(
-    "DIFF",
-    float(df["diff"].min()),
-    float(df["diff"].max()),
-    (float(df["diff"].min()), float(df["diff"].max()))
-)
-
 # =============================
-# FILTER DATA
+# FILTER BY DATE
 # =============================
 filtered = df[
-    (df["date"].between(pd.to_datetime(start_date), pd.to_datetime(end_date))) &
-    (df["pct_condensate"].between(con_min, con_max)) &
-    (df["steam_loss"].between(steam_min, steam_max)) &
-    (df["diff"].between(diff_min, diff_max))
+    df["date"].between(
+        pd.to_datetime(start_date),
+        pd.to_datetime(end_date)
+    )
 ].copy()
 
 if filtered.empty:
@@ -96,34 +77,19 @@ view_type = st.radio(
     horizontal=True
 )
 
+# =============================
+# PREPARE PLOT DATA
+# =============================
 plot_df = filtered.copy()
 
 if view_type == "รายเดือน":
-    plot_df = (
-        plot_df
-        .groupby(plot_df["date"].dt.to_period("M"))
-        .mean()
-        .reset_index()
-    )
-    plot_df["date"] = plot_df["date"].dt.to_timestamp()
+    plot_df["month"] = plot_df["date"].dt.to_period("M")
+    plot_df = plot_df.groupby("month", as_index=False).mean()
+    plot_df["date"] = plot_df["month"].dt.to_timestamp()
 
 elif view_type == "รายปี":
-    plot_df = (
-        plot_df
-        .groupby(plot_df["date"].dt.year)
-        .mean()
-        .reset_index()
-    )
-    plot_df.rename(columns={"date": "year"}, inplace=True)
-years = sorted(filtered["date"].dt.year.unique())
-
-selected_year = st.selectbox(
-    "📅 เลือกปี",
-    years,
-    index=len(years)-1
-)
-
-filtered = filtered[filtered["date"].dt.year == selected_year]
+    plot_df["year"] = plot_df["date"].dt.year
+    plot_df = plot_df.groupby("year", as_index=False).mean()
 
 # =============================
 # COST LOSS
@@ -151,12 +117,14 @@ c4.metric("💰 Cost Loss (฿)", f"{filtered['cost_loss'].sum():,.0f}")
 # =============================
 st.subheader("📈 Trend")
 
+x_col = "date" if view_type != "รายปี" else "year"
+
 col1, col2, col3 = st.columns(3)
 
 with col1:
     fig1 = px.line(
         plot_df,
-        x="date" if view_type != "รายปี" else "year",
+        x=x_col,
         y="pct_condensate",
         title="% Condensate",
         markers=True
@@ -167,7 +135,7 @@ with col1:
 with col2:
     fig2 = px.line(
         plot_df,
-        x="date" if view_type != "รายปี" else "year",
+        x=x_col,
         y="steam_loss",
         title="Steam Loss",
         markers=True
@@ -178,7 +146,7 @@ with col2:
 with col3:
     fig3 = px.line(
         plot_df,
-        x="date" if view_type != "รายปี" else "year",
+        x=x_col,
         y="diff",
         title="DIFF",
         markers=True
@@ -205,36 +173,5 @@ st.plotly_chart(fig_cost, use_container_width=True)
 # =============================
 st.subheader("📋 Daily Report")
 st.dataframe(filtered, use_container_width=True)
-plot_df = filtered.copy()
 
-if view_type == "รายเดือน":
-    plot_df["month"] = plot_df["date"].dt.to_period("M")
-    plot_df = plot_df.groupby("month", as_index=False).mean()
-    plot_df["date"] = plot_df["month"].dt.to_timestamp()
-
-elif view_type == "รายปี":
-    plot_df["year"] = plot_df["date"].dt.year
-    plot_df = plot_df.groupby("year", as_index=False).mean()
-# =============================
-# FILTER DATA
-# =============================
-filtered = df[ ... ].copy()
-view_type = st.radio(
-    "",
-    ["รายวัน", "รายเดือน", "รายปี"],
-    horizontal=True
-)
-# =============================
-# PREPARE PLOT DATA
-# =============================
-plot_df = filtered.copy()
-
-if view_type == "รายเดือน":
-    plot_df["month"] = plot_df["date"].dt.to_period("M")
-    plot_df = plot_df.groupby("month", as_index=False).mean()
-    plot_df["date"] = plot_df["month"].dt.to_timestamp()
-
-elif view_type == "รายปี":
-    plot_df["year"] = plot_df["date"].dt.year
-    plot_df = plot_df.groupby("year", as_index=False).mean()
 
