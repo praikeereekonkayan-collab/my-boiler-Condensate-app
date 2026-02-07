@@ -2,155 +2,136 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# =============================
-# PAGE CONFIG
-# =============================
 st.set_page_config(
-    page_title="Boiler Condensate Loss",
-    page_icon="🔥",
+    page_title="Maintenance Daily Dashboard",
     layout="wide"
 )
 
-st.title("🔥 Boiler Condensate Loss Dashboard")
-st.caption("ข้อมูลจาก Google Sheets : condansate")
-
 # =============================
-# LOAD DATA FROM GOOGLE SHEETS
+# LOAD DATA FROM GOOGLE SHEET
 # =============================
 @st.cache_data
 def load_data():
-    url = "https://docs.google.com/spreadsheets/d/FILE_ID/export?format=csv"
-df = pd.read_csv(url)
-
-
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df = df.dropna(subset=["date"])
-    df["cost_loss"] = pd.to_numeric(df["cost_loss"], errors="coerce").fillna(0)
-    df["boiler"] = df["boiler"].astype(str)
-
+    sheet_id = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
+    sheet_name = "รายงานประจำวัน"
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+    df = pd.read_csv(url)
+    df["วันที่"] = pd.to_datetime(df["วันที่"], errors="coerce")
+    df = df.dropna(subset=["วันที่"])
     return df
 
+df = load_data()
 
-
-data = load_data()
-
-# =============================
-# SIDEBAR FILTER
-# =============================
-st.sidebar.header("🔎 ตัวกรองข้อมูล")
-
-view_type = st.sidebar.selectbox(
-    "รูปแบบการแสดงผล",
-    ["รายวัน", "รายเดือน", "รายปี"]
-)
-
-boiler_select = st.sidebar.multiselect(
-    "เลือก Boiler",
-    options=sorted(data["boiler"].unique()),
-    default=sorted(data["boiler"].unique())
-)
-
-data = data[data["boiler"].isin(boiler_select)]
-
-start_date, end_date = st.sidebar.date_input(
-    "ช่วงวันที่",
-    [data["date"].min(), data["date"].max()]
-)
-
-mask = (
-    (data["date"] >= pd.to_datetime(start_date)) &
-    (data["date"] <= pd.to_datetime(end_date))
-)
-data = data.loc[mask]
+st.title("🛠️ Maintenance Daily Report Dashboard")
 
 # =============================
-# AGGREGATE DATA
+# FILTER SECTION
 # =============================
-if view_type == "รายวัน":
-    data["period"] = data["date"]
+with st.sidebar:
+    st.header("🔎 ตัวกรองข้อมูล")
 
-elif view_type == "รายเดือน":
-    data["period"] = data["date"].dt.to_period("M").dt.to_timestamp()
+    start_date, end_date = st.date_input(
+        "📅 เลือกวันที่",
+        [df["วันที่"].min(), df["วันที่"].max()]
+    )
 
-else:  # รายปี
-    data["period"] = data["date"].dt.year
+    cond_min, cond_max = st.slider(
+        "% การใช้ Condensate",
+        float(df["% CON Return"].min()),
+        float(df["% CON Return"].max()),
+        (
+            float(df["% CON Return"].min()),
+            float(df["% CON Return"].max())
+        )
+    )
 
-group_data = (
-    data.groupby(["period", "boiler"], as_index=False)
-        .agg(cost_loss=("cost_loss", "sum"))
-)
+    steam_min, steam_max = st.slider(
+        "การสิ้นเปลืองพลังงาน (Steam)",
+        float(df["ยอดรวมการใช้ Steam"].min()),
+        float(df["ยอดรวมการใช้ Steam"].max()),
+        (
+            float(df["ยอดรวมการใช้ Steam"].min()),
+            float(df["ยอดรวมการใช้ Steam"].max())
+        )
+    )
+
+    diff_min, diff_max = st.slider(
+        "ประสิทธิภาพการรั่วสตีม (DIFF)",
+        float(df["DIFF"].min()),
+        float(df["DIFF"].max()),
+        (
+            float(df["DIFF"].min()),
+            float(df["DIFF"].max())
+        )
+    )
+
+# =============================
+# APPLY FILTERS
+# =============================
+filtered = df[
+    (df["วันที่"].between(pd.to_datetime(start_date), pd.to_datetime(end_date))) &
+    (df["% CON Return"].between(cond_min, cond_max)) &
+    (df["ยอดรวมการใช้ Steam"].between(steam_min, steam_max)) &
+    (df["DIFF"].between(diff_min, diff_max))
+]
 
 # =============================
 # KPI SECTION
 # =============================
-total_loss = group_data["cost_loss"].sum()
-avg_loss = group_data.groupby("period")["cost_loss"].sum().mean()
+k1, k2, k3 = st.columns(3)
 
-top_boiler = (
-    group_data.groupby("boiler")["cost_loss"]
-    .sum()
-    .idxmax()
+k1.metric(
+    "♻️ Avg % Condensate",
+    f"{filtered['% CON Return'].mean():.2f} %"
 )
 
-col1, col2, col3 = st.columns(3)
-
-col1.metric("💸 Cost Loss รวม", f"{total_loss:,.0f} บาท")
-col2.metric("📊 ค่าเฉลี่ยต่อช่วง", f"{avg_loss:,.0f} บาท")
-col3.metric("🔥 Boiler Loss สูงสุด", top_boiler)
-
-st.divider()
-
-# =============================
-# TREND LINE CHART
-# =============================
-fig_trend = px.line(
-    group_data,
-    x="period",
-    y="cost_loss",
-    color="boiler",
-    markers=True,
-    title="📈 แนวโน้ม Cost Loss แยกตาม Boiler",
-    template="plotly_white"
+k2.metric(
+    "🔥 Avg Steam Usage",
+    f"{filtered['ยอดรวมการใช้ Steam'].mean():,.0f}"
 )
 
-fig_trend.update_layout(
-    xaxis_title="เวลา",
-    yaxis_title="Cost Loss (บาท)",
-    title_font_size=20,
-    font=dict(size=14)
+k3.metric(
+    "💨 Avg Steam Loss (DIFF)",
+    f"{filtered['DIFF'].mean():.2f}"
 )
 
-st.plotly_chart(fig_trend, use_container_width=True)
+# =============================
+# CHARTS
+# =============================
+c1, c2 = st.columns(2)
 
-# =============================
-# BAR COMPARISON
-# =============================
-bar_data = (
-    group_data.groupby("boiler", as_index=False)["cost_loss"]
-    .sum()
+with c1:
+    fig1 = px.line(
+        filtered,
+        x="วันที่",
+        y="% CON Return",
+        markers=True,
+        title="% Condensate Trend"
+    )
+    st.plotly_chart(fig1, use_container_width=True)
+
+with c2:
+    fig2 = px.line(
+        filtered,
+        x="วันที่",
+        y="ยอดรวมการใช้ Steam",
+        markers=True,
+        title="Steam Usage Trend"
+    )
+    st.plotly_chart(fig2, use_container_width=True)
+
+fig3 = px.bar(
+    filtered,
+    x="วันที่",
+    y=["ยอดรวมการใช้ Steam", "TARGET"],
+    barmode="group",
+    title="Steam Usage vs Target"
 )
-
-fig_bar = px.bar(
-    bar_data,
-    x="boiler",
-    y="cost_loss",
-    text_auto=".2s",
-    title="📊 เปรียบเทียบ Cost Loss ตาม Boiler",
-    template="plotly_white"
-)
-
-fig_bar.update_layout(
-    xaxis_title="Boiler",
-    yaxis_title="Cost Loss (บาท)",
-    title_font_size=20,
-    font=dict(size=14)
-)
-
-st.plotly_chart(fig_bar, use_container_width=True)
+st.plotly_chart(fig3, use_container_width=True)
 
 # =============================
-# DATA TABLE
+# TABLE
 # =============================
-with st.expander("📄 ตารางข้อมูลสรุป"):
-    st.dataframe(group_data, use_container_width=True)
+st.subheader("📋 รายละเอียดรายงานประจำวัน")
+st.dataframe(filtered, use_container_width=True)
 
