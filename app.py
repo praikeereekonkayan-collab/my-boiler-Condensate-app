@@ -19,7 +19,7 @@ st.caption("ข้อมูลจาก Google Sheets : condansate")
 # =============================
 @st.cache_data
 def load_data():
-    url = "https://docs.google.com/spreadsheets/d/e/XXXXXXXX/pub?output=csv"
+    https://docs.google.com/spreadsheets/d/FILE_ID/export?format=csv
     df = pd.read_csv(url)
 
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
