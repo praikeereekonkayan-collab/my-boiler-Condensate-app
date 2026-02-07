@@ -70,7 +70,8 @@ filtered = df[
     (df["pct_condensate"].between(con_min, con_max)) &
     (df["steam_loss"].between(steam_min, steam_max)) &
     (df["diff"].between(diff_min, diff_max))
-]
+].copy()
+
 
 # =============================
 # TITLE
