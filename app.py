@@ -105,29 +105,35 @@ with col1:
         markers=True,
         title="% Condensate"
     )
+
+    fig1.add_hline(
+        y=TARGET_COND,
+        line_dash="dash",
+        line_color="red",
+        annotation_text="Target",
+        annotation_position="top left"
+    )
+
     st.plotly_chart(fig1, use_container_width=True)
 
 # Steam Loss
 with col2:
- fig1 = px.line(
-    plot_df,
-    x="date" if view_type != "รายปี" else "year",
-    y="pct_condensate",
-    title="% Condensate",
-    markers=True
-)
-
-fig1.add_hline(
-    y=TARGET_COND,
-    line_dash="dash",
-    line_color="red",
-    annotation_text="Target",
-    annotation_position="top left"
-)
-
-st.plotly_chart(fig1, use_container_width=True)
-
+    fig2 = px.line(
+        plot_df,
+        x="date" if view_type != "รายปี" else "year",
+        y="steam_loss",
+        title="Steam Loss",
+        markers=True
     )
+
+    fig2.add_hline(
+        y=TARGET_STEAM_LOSS,
+        line_dash="dash",
+        line_color="red",
+        annotation_text="Target",
+        annotation_position="top left"
+    )
+
     st.plotly_chart(fig2, use_container_width=True)
 
 # DIFF
