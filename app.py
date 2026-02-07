@@ -71,6 +71,9 @@ filtered = df[
     (df["steam_loss"].between(steam_min, steam_max)) &
     (df["diff"].between(diff_min, diff_max))
 ].copy()
+if filtered.empty:
+    st.warning("⚠️ ไม่มีข้อมูลในช่วงที่เลือก")
+    st.stop()
 
 
 # =============================
