@@ -92,13 +92,42 @@ c3.metric("💨 DIFF Avg", f"{filtered['diff'].mean():.2f}")
 # =============================
 # CHART
 # =============================
-fig = px.line(
-    filtered,
-    x="date",
-    y=["pct_condensate", "steam_loss"],
-    markers=True
-)
-st.plotly_chart(fig, use_container_width=True)
+st.subheader("📈 Trend by Date")
+
+col1, col2, col3 = st.columns(3)
+
+# % Condensate
+with col1:
+    fig1 = px.line(
+        filtered,
+        x="date",
+        y="pct_condensate",
+        markers=True,
+        title="% Condensate"
+    )
+    st.plotly_chart(fig1, use_container_width=True)
+
+# Steam Loss
+with col2:
+    fig2 = px.line(
+        filtered,
+        x="date",
+        y="steam_loss",
+        markers=True,
+        title="Steam Loss"
+    )
+    st.plotly_chart(fig2, use_container_width=True)
+
+# DIFF
+with col3:
+    fig3 = px.line(
+        filtered,
+        x="date",
+        y="diff",
+        markers=True,
+        title="DIFF"
+    )
+    st.plotly_chart(fig3, use_container_width=True)
 
 # =============================
 # TABLE
