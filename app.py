@@ -115,16 +115,15 @@ with col1:
     )
 
     st.plotly_chart(fig1, use_container_width=True)
+fig2 = px.line(
+    plot_df,
+    x="date" if view_type != "รายปี" else "year",
+    y="steam_loss",
+    title="Steam Loss",
+    markers=True
+)
 
 # Steam Loss
-with col2:
-    fig2 = px.line(
-        plot_df,
-        x="date" if view_type != "รายปี" else "year",
-        y="steam_loss",
-        title="Steam Loss",
-        markers=True
-    )
 
     fig2.add_hline(
         y=TARGET_STEAM_LOSS,
