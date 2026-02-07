@@ -14,7 +14,7 @@ st.set_page_config(
 @st.cache_data
 def load_data():
     sheet_id = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
-    sheet_name = "รายงานประจำวัน"
+    sheet_name = "condensate"
     sheet_name_encoded = urllib.parse.quote(sheet_name)
 
     url = (
