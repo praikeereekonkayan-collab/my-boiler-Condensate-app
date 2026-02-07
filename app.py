@@ -296,8 +296,7 @@ fig_cost = px.bar(
     y="cost_loss",
     title="Cost Loss",
 )
-st.plotly_chart(fig_cost, use_container_width=True)
-
+st.plotly_chart(fig_cost, use_container_width=
 # =============================
 # COST LOSS GRAPH
 # =============================
@@ -311,5 +310,3 @@ fig_cost = px.bar(
 )
 
 st.plotly_chart(fig_cost, use_container_width=True)
-
-
