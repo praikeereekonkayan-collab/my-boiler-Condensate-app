@@ -1,24 +1,23 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import urllib.parse
 
+# =============================
+# PAGE CONFIG
+# =============================
 st.set_page_config(
-    page_title="Maintenance Daily Dashboard",
+    page_title="Boiler & Condensate Dashboard",
     layout="wide"
 )
 
 # =============================
-# LOAD DATA FROM GOOGLE SHEET
+# LOAD DATA
 # =============================
-import urllib.parse
-import pandas as pd
-import streamlit as st
-
 @st.cache_data
 def load_data():
     sheet_id = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
     sheet_name = "รายงานประจำวัน"
-
     sheet_name_encoded = urllib.parse.quote(sheet_name)
 
     url = (
@@ -27,28 +26,36 @@ def load_data():
     )
 
     df = pd.read_csv(url)
+
+    # แปลงวันที่
     df["วันที่"] = pd.to_datetime(df["วันที่"], errors="coerce")
     df = df.dropna(subset=["วันที่"])
-    return df
 
+    return df
 
 df = load_data()
 
-st.title("🛠️ Maintenance Daily Report Dashboard")
+# =============================
+# TITLE
+# =============================
+st.title("🏭 Boiler & Condensate Performance Dashboard")
+st.caption("ข้อมูลจากรายงานประจำวัน (Google Sheet)")
 
 # =============================
-# FILTER SECTION
+# SIDEBAR FILTER
 # =============================
 with st.sidebar:
     st.header("🔎 ตัวกรองข้อมูล")
 
+    # Date filter
     start_date, end_date = st.date_input(
-        "📅 เลือกวันที่",
+        "📅 เลือกช่วงวันที่",
         [df["วันที่"].min(), df["วันที่"].max()]
     )
 
-    cond_min, cond_max = st.slider(
-        "% การใช้ Condensate",
+    # % Condensate
+    con_min, con_max = st.slider(
+        "% คอนเดนเสท (CON Return)",
         float(df["% CON Return"].min()),
         float(df["% CON Return"].max()),
         (
@@ -57,16 +64,18 @@ with st.sidebar:
         )
     )
 
+    # Steam usage
     steam_min, steam_max = st.slider(
-        "การสิ้นเปลืองพลังงาน (Steam)",
-        float(df["ยอดรวมการใช้ Steam"].min()),
-        float(df["ยอดรวมการใช้ Steam"].max()),
+        "การใช้สตีม (รวม)",
+        float(df["สรุปยอดรวมการใช้สตีม"].min()),
+        float(df["สรุปยอดรวมการใช้สตีม"].max()),
         (
-            float(df["ยอดรวมการใช้ Steam"].min()),
-            float(df["ยอดรวมการใช้ Steam"].max())
+            float(df["สรุปยอดรวมการใช้สตีม"].min()),
+            float(df["สรุปยอดรวมการใช้สตีม"].max())
         )
     )
 
+    # DIFF
     diff_min, diff_max = st.slider(
         "ประสิทธิภาพการรั่วสตีม (DIFF)",
         float(df["DIFF"].min()),
@@ -78,12 +87,12 @@ with st.sidebar:
     )
 
 # =============================
-# APPLY FILTERS
+# APPLY FILTER
 # =============================
 filtered = df[
     (df["วันที่"].between(pd.to_datetime(start_date), pd.to_datetime(end_date))) &
-    (df["% CON Return"].between(cond_min, cond_max)) &
-    (df["ยอดรวมการใช้ Steam"].between(steam_min, steam_max)) &
+    (df["% CON Return"].between(con_min, con_max)) &
+    (df["สรุปยอดรวมการใช้สตีม"].between(steam_min, steam_max)) &
     (df["DIFF"].between(diff_min, diff_max))
 ]
 
@@ -93,19 +102,21 @@ filtered = df[
 k1, k2, k3 = st.columns(3)
 
 k1.metric(
-    "♻️ Avg % Condensate",
+    "♻️ % คอนเดนเสท เฉลี่ย",
     f"{filtered['% CON Return'].mean():.2f} %"
 )
 
 k2.metric(
-    "🔥 Avg Steam Usage",
-    f"{filtered['ยอดรวมการใช้ Steam'].mean():,.0f}"
+    "🔥 การใช้สตีมเฉลี่ย",
+    f"{filtered['สรุปยอดรวมการใช้สตีม'].mean():,.0f}"
 )
 
 k3.metric(
-    "💨 Avg Steam Loss (DIFF)",
+    "💨 Steam Loss (DIFF)",
     f"{filtered['DIFF'].mean():.2f}"
 )
+
+st.divider()
 
 # =============================
 # CHARTS
@@ -113,37 +124,39 @@ k3.metric(
 c1, c2 = st.columns(2)
 
 with c1:
-    fig1 = px.line(
+    fig_con = px.line(
         filtered,
         x="วันที่",
         y="% CON Return",
         markers=True,
-        title="% Condensate Trend"
+        title="% Condensate Return Trend"
     )
-    st.plotly_chart(fig1, use_container_width=True)
+    st.plotly_chart(fig_con, use_container_width=True)
 
 with c2:
-    fig2 = px.line(
+    fig_steam = px.line(
         filtered,
         x="วันที่",
-        y="ยอดรวมการใช้ Steam",
+        y="สรุปยอดรวมการใช้สตีม",
         markers=True,
         title="Steam Usage Trend"
     )
-    st.plotly_chart(fig2, use_container_width=True)
+    st.plotly_chart(fig_steam, use_container_width=True)
 
-fig3 = px.bar(
+# Steam vs Target
+fig_target = px.bar(
     filtered,
     x="วันที่",
-    y=["ยอดรวมการใช้ Steam", "TARGET"],
+    y=["สรุปยอดรวมการใช้สตีม", "TARGET"],
     barmode="group",
     title="Steam Usage vs Target"
 )
-st.plotly_chart(fig3, use_container_width=True)
+st.plotly_chart(fig_target, use_container_width=True)
 
 # =============================
-# TABLE
+# DATA TABLE
 # =============================
-st.subheader("📋 รายละเอียดรายงานประจำวัน")
+st.subheader("📋 ตารางรายละเอียดรายงานประจำวัน")
 st.dataframe(filtered, use_container_width=True)
+
 
