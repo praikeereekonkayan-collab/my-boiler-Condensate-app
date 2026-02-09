@@ -26,10 +26,11 @@ def load_data():
     )
 
     df = pd.read_csv(url)
+
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df = df.dropna(subset=["date"])
 
-    # ✅ คำนวณ cost_loss ตรงนี้
+    # ✅ ใช้ df เท่านั้น
     df["cost_loss"] = df["steam_loss"] * df["mark_up"]
 
     return df
