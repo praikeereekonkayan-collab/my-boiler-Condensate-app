@@ -25,10 +25,10 @@ def load_data():
         f"{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name_encoded}"
     )
 
-    df = pd.read_csv(url)
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df = df.dropna(subset=["date"])
-    df["cost_loss"] = df["steam_loss"] * df["mark_up"]
+    data = pd.read_csv(url)
+    data["date"] = pd.to_datetime(data["date"], errors="coerce")
+    data = data.dropna(subset=["date"])
+    data["cost_loss"] = data["steam_loss"] * data["mark_up"]
 
     return df
 
@@ -104,7 +104,7 @@ elif view == "ช่าง":
 TARGET_COND = 0.90
 TARGET_STEAM_LOSS = 80
 TARGET_DIFF = 0.00
-COST_PER_UNIT_STEAM = 120  # บาท / หน่วย
+COST_PER_UNIT_STEAM = 664  # บาท / หน่วย
 
 # =============================
 # SIDEBAR FILTER
@@ -113,14 +113,14 @@ st.sidebar.header("🔎 Filter")
 
 start_date, end_date = st.sidebar.date_input(
     "เลือกช่วงวันที่",
-    [df["date"].min(), df["date"].max()]
+    [data["date"].min(), data["date"].max()]
 )
 
 # =============================
 # FILTER BY DATE
 # =============================
 filtered = df[
-    df["date"].between(
+    data["date"].between(
         pd.to_datetime(start_date),
         pd.to_datetime(end_date)
     )
