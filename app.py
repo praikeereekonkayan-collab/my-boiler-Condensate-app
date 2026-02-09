@@ -15,7 +15,7 @@ st.set_page_config(
 # LOAD DATA
 # =============================
 @st.cache_data
-data load_data():
+def load_data():
     sheet_id = "1G_ikK60FZUgctnM7SLZ4Ss0p6demBrlCwIre27fXsco"
     sheet_name = "condensate"
     sheet_name_encoded = urllib.parse.quote(sheet_name)
