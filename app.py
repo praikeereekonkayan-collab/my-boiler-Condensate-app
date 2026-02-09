@@ -25,15 +25,18 @@ def load_data():
         f"{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name_encoded}"
     )
 
-    df= pd.read_csv(url)
+    df = pd.read_csv(url)
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df = df.dropna(subset=["date"])
-    data["cost_loss"] = data["steam_loss"] * data["mark_up"]
+
+    # ✅ คำนวณ cost_loss ตรงนี้
+    df["cost_loss"] = df["steam_loss"] * df["mark_up"]
 
     return df
 
 
-data = load_data()
+
+df = load_data()
 # =============================
 # SELECT VIEW
 # =============================
