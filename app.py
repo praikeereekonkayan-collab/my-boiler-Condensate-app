@@ -32,7 +32,7 @@ def load_data():
     return df
 
 
-df = load_data()
+data = load_data()
 # =============================
 # SELECT VIEW
 # =============================
