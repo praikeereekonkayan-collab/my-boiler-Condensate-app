@@ -33,6 +33,69 @@ def load_data():
 
 
 df = load_data()
+# =============================
+# SELECT VIEW
+# =============================
+view = st.radio(
+    "🔘 เลือกมุมมอง",
+    ["ผู้บริหาร", "วิศวกร", "ช่าง"],
+    horizontal=True
+)
+
+# =============================
+# EXECUTIVE VIEW
+# =============================
+if view == "ผู้บริหาร":
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric("💰 Cost Loss รวม", f"{data['cost_loss'].sum():,.0f} บาท")
+    col2.metric("📊 Avg Condensate", f"{data['pct_condensate'].mean():.2%}")
+    col3.metric("⚠️ ต่ำกว่า Target", (data["pct_condensate"] < 0.90).sum())
+    col4.metric("📅 จำนวนวัน", len(data))
+
+    data["month"] = data["date"].dt.to_period("M").astype(str)
+    monthly = data.groupby("month")["cost_loss"].sum().reset_index()
+
+    fig = px.line(monthly, x="month", y="cost_loss", markers=True)
+    st.plotly_chart(fig, use_container_width=True)
+
+# =============================
+# ENGINEERING VIEW
+# =============================
+elif view == "วิศวกร":
+    col1, col2 = st.columns(2)
+
+    fig1 = px.line(data, x="date", y="pct_condensate", markers=True)
+    fig1.add_hline(y=0.90, line_dash="dash", line_color="red")
+    col1.plotly_chart(fig1, use_container_width=True)
+
+    fig2 = px.line(data, x="date", y="steam_loss", markers=True)
+    col2.plotly_chart(fig2, use_container_width=True)
+
+    st.dataframe(
+        data[["date", "pct_condensate", "steam_loss", "diff", "cost_loss"]],
+        use_container_width=True
+    )
+
+# =============================
+# MAINTENANCE VIEW
+# =============================
+elif view == "ช่าง":
+    today = data.sort_values("date").iloc[-1]
+    status = "🟢 ปกติ" if today["pct_condensate"] >= 0.90 else "🔴 ผิดปกติ"
+
+    st.metric("สถานะวันนี้", status)
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Condensate Today", f"{today['pct_condensate']:.2%}")
+    c2.metric("Steam Loss Today", f"{today['steam_loss']:.1f}")
+    c3.metric("Cost Loss Today", f"{today['cost_loss']:,.0f}")
+
+    alert = data[data["pct_condensate"] < 0.90]
+    st.dataframe(
+        alert[["date", "pct_condensate", "steam_loss", "cost_loss"]],
+        use_container_width=True
+    )
 
 # =============================
 # TARGET / COST SETTING
