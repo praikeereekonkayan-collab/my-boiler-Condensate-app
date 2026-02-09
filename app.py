@@ -119,7 +119,7 @@ start_date, end_date = st.sidebar.date_input(
 # =============================
 # FILTER BY DATE
 # =============================
-filtered = df[
+filtered = data[
     data["date"].between(
         pd.to_datetime(start_date),
         pd.to_datetime(end_date)
@@ -147,13 +147,13 @@ view_type = st.radio(
 plot_df = filtered.copy()
 
 if view_type == "รายเดือน":
-    plot_df["month"] = plot_df["date"].dt.to_period("M")
-    plot_df = plot_df.groupby("month", as_index=False).mean()
-    plot_df["date"] = plot_df["month"].dt.to_timestamp()
+    plot_data["month"] = plot_data["date"].dt.to_period("M")
+    plot_data = plot_data.groupby("month", as_index=False).mean()
+    plot_data["date"] = plot_data["month"].dt.to_timestamp()
 
 elif view_type == "รายปี":
-    plot_df["year"] = plot_df["date"].dt.year
-    plot_df = plot_df.groupby("year", as_index=False).mean()
+    plot_data["year"] = plot_data["date"].dt.year
+    plot_data = plot_data.groupby("year", as_index=False).mean()
 
 
 
