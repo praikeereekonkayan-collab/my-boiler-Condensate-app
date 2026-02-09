@@ -25,10 +25,10 @@ def load_data():
         f"{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name_encoded}"
     )
 
-    data = pd.read_csv(url)
-    data["date"] = pd.to_datetime(data["date"], errors="coerce")
-    data = data.dropna(subset=["date"])
-    data["cost_loss"] = data["steam_loss"] * data["mark_up"]
+    df= pd.read_csv(url)
+    df["date"] = pd.to_datetime(data["date"], errors="coerce")
+    df = data.dropna(subset=["date"])
+    df["cost_loss"] = data["steam_loss"] * data["mark_up"]
 
     return df
 
