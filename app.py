@@ -53,10 +53,10 @@ view = st.radio(
 if view == "ผู้บริหาร":
     col1, col2, col3, col4 = st.columns(4)
 
-    col1.metric("💰 Cost Loss รวม", f"{data['cost_loss'].sum():,.0f} บาท")
-    col2.metric("📊 Avg Condensate", f"{data['pct_condensate'].mean():.2%}")
-    col3.metric("⚠️ ต่ำกว่า Target", (data["pct_condensate"] < 0.90).sum())
-    col4.metric("📅 จำนวนวัน", len(data))
+    col1.metric("💰 Cost Loss รวม", f"{df['cost_loss'].sum():,.0f} บาท")
+    col2.metric("📊 Avg Condensate", f"{df['pct_condensate'].mean():.2%}")
+    col3.metric("⚠️ ต่ำกว่า Target", (df["pct_condensate"] < 0.90).sum())
+    col4.metric("📅 จำนวนวัน", len(df))
 
     data["month"] = data["date"].dt.to_period("M").astype(str)
     monthly = data.groupby("month")["cost_loss"].sum().reset_index()
