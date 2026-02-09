@@ -58,8 +58,8 @@ if view == "ผู้บริหาร":
     col3.metric("⚠️ ต่ำกว่า Target", (df["pct_condensate"] < 0.90).sum())
     col4.metric("📅 จำนวนวัน", len(df))
 
-    data["month"] = data["date"].dt.to_period("M").astype(str)
-    monthly = data.groupby("month")["cost_loss"].sum().reset_index()
+    df["month"] = df["date"].dt.to_period("M").astype(str)
+    monthly = df.groupby("month")["cost_loss"].sum().reset_index()
 
     fig = px.line(monthly, x="month", y="cost_loss", markers=True)
     st.plotly_chart(fig, use_container_width=True)
@@ -78,7 +78,7 @@ elif view == "วิศวกร":
     col2.plotly_chart(fig2, use_container_width=True)
 
     st.dataframe(
-        data[["date", "pct_condensate", "steam_loss", "diff", "cost_loss"]],
+        df[["date", "pct_condensate", "steam_loss", "diff", "cost_loss"]],
         use_container_width=True
     )
 
@@ -96,7 +96,7 @@ elif view == "ช่าง":
     c2.metric("Steam Loss Today", f"{today['steam_loss']:.1f}")
     c3.metric("Cost Loss Today", f"{today['cost_loss']:,.0f}")
 
-    alert = data[data["pct_condensate"] < 0.90]
+    alert = df[df["pct_condensate"] < 0.90]
     st.dataframe(
         alert[["date", "pct_condensate", "steam_loss", "cost_loss"]],
         use_container_width=True
@@ -117,14 +117,14 @@ st.sidebar.header("🔎 Filter")
 
 start_date, end_date = st.sidebar.date_input(
     "เลือกช่วงวันที่",
-    [data["date"].min(), data["date"].max()]
+    [df["date"].min(), df["date"].max()]
 )
 
 # =============================
 # FILTER BY DATE
 # =============================
-filtered = data[
-    data["date"].between(
+filtered = df[
+    df["date"].between(
         pd.to_datetime(start_date),
         pd.to_datetime(end_date)
     )
@@ -151,13 +151,13 @@ view_type = st.radio(
 plot_df = filtered.copy()
 
 if view_type == "รายเดือน":
-    plot_data["month"] = plot_data["date"].dt.to_period("M")
+    plot_df["month"] = plot_df["date"].dt.to_period("M")
     plot_data = plot_data.groupby("month", as_index=False).mean()
-    plot_data["date"] = plot_data["month"].dt.to_timestamp()
+    plot_df["date"] = plot_df["month"].dt.to_timestamp()
 
 elif view_type == "รายปี":
-    plot_data["year"] = plot_data["date"].dt.year
-    plot_data = plot_data.groupby("year", as_index=False).mean()
+    plot_df["year"] = plot_df["date"].dt.year
+    plot_df = plot_df.groupby("year", as_index=False).mean()
 
 
 
