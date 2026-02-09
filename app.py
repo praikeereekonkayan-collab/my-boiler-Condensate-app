@@ -26,9 +26,9 @@ def load_data():
     )
 
     df= pd.read_csv(url)
-    df["date"] = pd.to_datetime(data["date"], errors="coerce")
-    df = data.dropna(subset=["date"])
-    df["cost_loss"] = data["steam_loss"] * data["mark_up"]
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.dropna(subset=["date"])
+    data["cost_loss"] = data["steam_loss"] * data["mark_up"]
 
     return df
 
