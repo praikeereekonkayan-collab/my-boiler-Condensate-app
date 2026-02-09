@@ -155,14 +155,7 @@ elif view_type == "รายปี":
     plot_df["year"] = plot_df["date"].dt.year
     plot_df = plot_df.groupby("year", as_index=False).mean()
 
-# =============================
-# COST LOSS
-# =============================
-filtered["excess_steam"] = (
-    filtered["steam_loss"] - TARGET_STEAM_LOSS
-).clip(lower=0)
 
-filtered["cost_loss"] = filtered["excess_steam"] * COST_PER_UNIT_STEAM
 
 # =============================
 # KPI
