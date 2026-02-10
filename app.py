@@ -110,7 +110,7 @@ fig1 = px.bar(
     x=group_col,
     y=["steam_loss", "condensate_return"],
     barmode="group",
-    labels={"value": "ปริมาณ", group_col: "เวลา"}
+    labels={"value": "ปริมาณ", group_col: "วันที่"}
 )
 
 st.plotly_chart(fig1, use_container_width=True)
