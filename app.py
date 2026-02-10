@@ -127,7 +127,7 @@ fig2 = px.line(
     markers=True,
     labels={
         "pct_condensate": "% Condensate Return",
-        group_col: "เวลา"
+        group_col: "วันที่"
     }
 )
 
