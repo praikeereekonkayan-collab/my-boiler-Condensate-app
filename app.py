@@ -143,7 +143,7 @@ st.subheader("📊 สรุปภาพรวมผู้บริหาร")
 
 avg_pct = summary["pct_condensate"].mean()
 
-if avg_pct >= TARGET_PCT:
+if avg_pct >= TARGET_PCT:80
     status = "🟢 ดีมาก (ผ่านเป้า)"
 elif avg_pct >= TARGET_PCT - 5:
     status = "🟡 เฝ้าระวัง"
