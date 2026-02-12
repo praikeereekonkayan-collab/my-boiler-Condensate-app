@@ -136,6 +136,15 @@ st.plotly_chart(fig2, use_container_width=True)
 # =============================
 # TABLE
 # =============================
+st.sidebar.header("🎯 설정 Target")
+TARGET_PCT = st.sidebar.number_input(
+    "Target % Condensate Return",
+    min_value=0.0,
+    max_value=100.0,
+    value=80.0,
+    step=1.0
+)
+
 st.subheader("📋 ตารางข้อมูล")
 
 st.dataframe(summary, use_container_width=True)
@@ -143,7 +152,7 @@ st.subheader("📊 สรุปภาพรวมผู้บริหาร")
 
 avg_pct = summary["pct_condensate"].mean()*100
 
-if avg_pct >= TARGET_PCT:
+if avg_pct >= TARGET_PCT:=80
     status = "🟢 ดีมาก (ผ่านเป้า)"
 elif avg_pct >= TARGET_PCT - 5:
     status = "🟡 เฝ้าระวัง"
