@@ -141,9 +141,9 @@ st.subheader("📋 ตารางข้อมูล")
 st.dataframe(summary, use_container_width=True)
 st.subheader("📊 สรุปภาพรวมผู้บริหาร")
 
-avg_pct = summary["pct_condensate"].mean()
+avg_pct = summary["pct_condensate"].mean()*100
 
-if avg_pct >= TARGET_PCT 80:
+if avg_pct >= TARGET_PCT:
     status = "🟢 ดีมาก (ผ่านเป้า)"
 elif avg_pct >= TARGET_PCT - 5:
     status = "🟡 เฝ้าระวัง"
